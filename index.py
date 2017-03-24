@@ -1,5 +1,13 @@
 import getopt
 import sys
+def extract_doc(file_path):
+	doc = {}
+	root = xml.etree.ElementTree.parse(file_path).getroot()
+	for child in root:
+		key = child.attrib['name']
+		doc[key] = parse_child(child)
+
+	return doc
 def load_data(dir_doc):
 	docs = {}
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
