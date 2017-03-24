@@ -47,6 +47,9 @@ def load_data(dir_doc):
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
+def main():
+	docs = load_data(dir_doc)
+
 if __name__ == '__main__':
 	dir_doc = dict_path = postings_path = lengths_path = None
 	try:
@@ -69,3 +72,4 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
+	main()
