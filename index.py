@@ -1,5 +1,7 @@
 import getopt
 import sys
+import os
+import xml.etree.ElementTree
 
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
