@@ -1,5 +1,15 @@
 import getopt
 import sys
+def load_data(dir_doc):
+	docs = {}
+	for dirpath, dirnames, filenames in os.walk(dir_doc):
+		for name in filenames:
+			if name.endswith('.xml'):
+				file_path = os.path.join(dirpath, name)
+				doc_id = os.path.splitext(name)[0]
+				docs[name] = extract_doc(file_path)
+
+	return docs
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
