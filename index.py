@@ -1,5 +1,24 @@
 import getopt
 import sys
+def parse_child(child):
+	if child.tag == 'str':
+		return child.text
+	elif child.tag == 'date':
+		return child.text # Can do date parsing
+	elif child.tag == 'bool':
+		return str2bool(child.text)
+	elif child.tag == 'long':
+		return long(child.text)
+	elif child.tag == 'float':
+		return float(child.text)
+	elif child.tag == 'arr':
+		arr = []
+		for grandchild in child:
+			arr.append(parse_child)
+		return arr
+	else:
+		exit('Unsupported tag: ', child.tag)
+
 def extract_doc(file_path):
 	doc = {}
 	root = xml.etree.ElementTree.parse(file_path).getroot()
