@@ -1,5 +1,9 @@
 import getopt
 import sys
+
+def str2bool(bool_str):
+	return bool_str.lower() in ("yes", "true", "t", "1")
+
 def parse_child(child):
 	if child.tag == 'str':
 		return child.text
