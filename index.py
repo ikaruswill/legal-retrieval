@@ -14,7 +14,7 @@ def parse_child(child):
 	elif child.tag == 'bool':
 		return str2bool(child.text)
 	elif child.tag == 'long':
-		return long(child.text)
+		return int(child.text) # Python 3 int does long implicitly
 	elif child.tag == 'float':
 		return float(child.text)
 	elif child.tag == 'arr':
