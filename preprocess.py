@@ -8,3 +8,8 @@ def tokenize(docs, key):
 	for doc_id, doc in docs.items():
 		docs[doc_id][key] = word_tokenize(doc[key].lower())
 
+# In-place
+def remove_punctuations(docs, key):
+	punctuation = set(string.punctuation)
+	for doc_id, doc in docs.items():
+		docs[doc_id][key] = [token for token in doc[key] if token not in punctuation]
