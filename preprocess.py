@@ -1,7 +1,7 @@
-import string
+from string import punctuation
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus import stopwords
+from nltk.corpus.stopwords import stopwords
 
 # In-place
 def tokenize(docs, key):
@@ -10,9 +10,15 @@ def tokenize(docs, key):
 
 # In-place
 def remove_punctuations(docs, key):
-	punctuation = set(string.punctuation)
+	punctuation_set = set(string.punctuation)
 	for doc_id, doc in docs.items():
-		docs[doc_id][key] = [token for token in doc[key] if token not in punctuation]
+		docs[doc_id][key] = [token for token in doc[key] if token not in punctuation_set]
+
+# In-place
+def remove_stopwords(docs, key):
+	stopword_set = set(stopwords.words('english'))
+	for doc_id, doc in docs.items():
+		docs[doc_id][key] = [token for token in doc[key] if token not in stopword_set]
 
 # In-place
 def lemmatize(docs, key):
