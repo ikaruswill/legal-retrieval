@@ -6,6 +6,7 @@ import xml.etree.ElementTree
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
 
+# Whitelist fields for better performance in both space and time complexity
 def parse_child(child):
 	if child.tag == 'str':
 		return child.text
@@ -33,6 +34,7 @@ def extract_doc(file_path):
 		doc[key] = parse_child(child)
 
 	return doc
+	
 def load_data(dir_doc):
 	docs = {}
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
