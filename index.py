@@ -2,6 +2,7 @@ import getopt
 import sys
 import os
 import xml.etree.ElementTree
+import utility
 
 ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 
@@ -37,7 +38,7 @@ def extract_doc(file_path):
 
 	return doc
 	
-def load_data(dir_doc):
+def load_xml_data(dir_doc):
 	docs = {}
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		for name in filenames:
@@ -48,11 +49,30 @@ def load_data(dir_doc):
 
 	return docs
 
+def preprocess(docs, content_key):
+	utility.tokenize(docs, content_key)
+	utility.remove_punctuation(docs, content_key)
+	utility.remove_stopwords(docs, content_key)
+	utility.lemmatize(docs, content_key)
+	# Duplicate content key into unigram, bigram, trigram
+	for doc in docs:
+		doc['unigram'] = doc[content_key]
+		doc['bigram'] = doc[content_key]
+		doc['trigram'] = doc[content_key]
+		# Content key deleted to save memory
+		doc.pop(content_key)
+	utility.generate_ngrams(docs, 'bigram', 2, False)
+	utility.generate_ngrams(docs, 'trigram', 3, False)
+
+
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
-	docs = load_data(dir_doc)
+	content_key = 'content'
+	docs = load_xml_data(dir_doc)
+	preprocess(docs, content_key)
+
 
 if __name__ == '__main__':
 	dir_doc = dict_path = postings_path = lengths_path = None
