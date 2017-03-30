@@ -81,6 +81,16 @@ def build_dictionary(docs, key):
 
 	return dictionary
 
+def build_and_populate_lengths(docs, key):
+	lengths = {}
+	for doc_id, doc in docs.items():
+		sum_squares = 0
+		for term, freq in doc[key].items():
+			sum_squares += math.pow(1 + math.log10(freq), 2)
+		lengths[doc_id] = math.sqrt(sum_squares)
+
+	return lengths
+
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
@@ -89,6 +99,7 @@ def main():
 	# ngram_keys = ['unigram', 'bigram', 'trigram']
 	docs = load_xml_data(dir_doc)
 	preprocess(docs, content_key)
+	lengths = build_and_populate_lengths(docs, content_key)
 
 	unigram_dictionary = build_dictionary(docs, 'unigram')
 	bigram_dictionary = build_dictionary(docs, 'bigram')
