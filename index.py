@@ -67,6 +67,18 @@ def preprocess(docs, content_key):
 	utility.count_terms(docs, 'bigram')
 	utility.count_terms(docs, 'trigram')
 
+def build_dictionary(docs, key):
+	terms = set()
+	for doc in docs:
+		terms.update(doc[key].keys())
+
+	sorted_terms = sorted(list(terms))
+
+	dictionary = {}
+	for i, term in enumerate(sorted_terms):
+		dictionary[term] = {'index': i}
+
+	return dictionary
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
@@ -75,6 +87,9 @@ def main():
 	content_key = 'content'
 	docs = load_xml_data(dir_doc)
 	preprocess(docs, content_key)
+	unigram_dictionary = build_dictionary(docs, 'unigram')
+	bigram_dictionary = build_dictionary(docs, 'bigram')
+	trigram_dictionary = build_dictionary(docs, 'trigram')
 
 
 if __name__ == '__main__':
