@@ -52,7 +52,7 @@ def load_xml_data(dir_doc):
 
 def preprocess(docs, key):
 	utility.tokenize(docs, key)
-	utility.remove_punctuation(docs, key)
+	utility.remove_punctuations(docs, key)
 	utility.remove_stopwords(docs, key)
 	utility.lemmatize(docs, key)
 	# Duplicate content key into unigram, bigram, trigram
@@ -86,11 +86,14 @@ def usage():
 
 def main():
 	content_key = 'content'
+	# ngram_keys = ['unigram', 'bigram', 'trigram']
 	docs = load_xml_data(dir_doc)
 	preprocess(docs, content_key)
+
 	unigram_dictionary = build_dictionary(docs, 'unigram')
 	bigram_dictionary = build_dictionary(docs, 'bigram')
 	trigram_dictionary = build_dictionary(docs, 'trigram')
+
 
 
 if __name__ == '__main__':
