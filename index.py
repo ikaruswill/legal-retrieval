@@ -3,6 +3,8 @@ import sys
 import os
 import xml.etree.ElementTree
 
+ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
+
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
 
@@ -31,7 +33,7 @@ def extract_doc(file_path):
 	root = xml.etree.ElementTree.parse(file_path).getroot()
 	for child in root:
 		key = child.attrib['name']
-		doc[key] = parse_child(child)
+		doc[key] = parse_child(child) if key not in ignored_tag_names
 
 	return doc
 	
