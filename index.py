@@ -63,6 +63,9 @@ def preprocess(docs, content_key):
 		doc.pop(content_key)
 	utility.generate_ngrams(docs, 'bigram', 2, False)
 	utility.generate_ngrams(docs, 'trigram', 3, False)
+	utility.count_terms(docs, 'unigram')
+	utility.count_terms(docs, 'bigram')
+	utility.count_terms(docs, 'trigram')
 
 
 def usage():
