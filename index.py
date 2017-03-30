@@ -56,12 +56,12 @@ def preprocess(docs, key):
 	utility.remove_stopwords(docs, key)
 	utility.lemmatize(docs, key)
 	# Duplicate content key into unigram, bigram, trigram
-	for doc in docs:
-		doc['unigram'] = doc[key]
-		doc['bigram'] = doc[key]
-		doc['trigram'] = doc[key]
+	for doc_id, doc in docs.items():
+		docs[doc_id]['unigram'] = docs[doc_id][key]
+		docs[doc_id]['bigram'] = docs[doc_id][key]
+		docs[doc_id]['trigram'] = docs[doc_id][key]
 		# Content key deleted to save memory
-		doc.pop(key)
+		docs[doc_id].pop(key)
 	utility.generate_ngrams(docs, 'bigram', 2, False)
 	utility.generate_ngrams(docs, 'trigram', 3, False)
 	utility.count_terms(docs, 'unigram')
