@@ -50,18 +50,18 @@ def load_xml_data(dir_doc):
 
 	return docs
 
-def preprocess(docs, content_key):
-	utility.tokenize(docs, content_key)
-	utility.remove_punctuation(docs, content_key)
-	utility.remove_stopwords(docs, content_key)
-	utility.lemmatize(docs, content_key)
+def preprocess(docs, key):
+	utility.tokenize(docs, key)
+	utility.remove_punctuation(docs, key)
+	utility.remove_stopwords(docs, key)
+	utility.lemmatize(docs, key)
 	# Duplicate content key into unigram, bigram, trigram
 	for doc in docs:
-		doc['unigram'] = doc[content_key]
-		doc['bigram'] = doc[content_key]
-		doc['trigram'] = doc[content_key]
+		doc['unigram'] = doc[key]
+		doc['bigram'] = doc[key]
+		doc['trigram'] = doc[key]
 		# Content key deleted to save memory
-		doc.pop(content_key)
+		doc.pop(key)
 	utility.generate_ngrams(docs, 'bigram', 2, False)
 	utility.generate_ngrams(docs, 'trigram', 3, False)
 	utility.count_terms(docs, 'unigram')
