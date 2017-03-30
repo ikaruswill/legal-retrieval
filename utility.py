@@ -12,7 +12,7 @@ def tokenize(docs, key):
 
 # In-place, requires tokenized
 def remove_punctuations(docs, key):
-	punctuation_set = set(string.punctuation)
+	punctuation_set = set(punctuation)
 	for doc_id, doc in docs.items():
 		docs[doc_id][key] = [token for token in doc[key] if token not in punctuation_set]
 
