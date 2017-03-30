@@ -64,9 +64,9 @@ def preprocess(docs, key):
 		docs[doc_id].pop(key)
 	utility.generate_ngrams(docs, 'bigram', 2, False)
 	utility.generate_ngrams(docs, 'trigram', 3, False)
-	utility.count_terms(docs, 'unigram')
-	utility.count_terms(docs, 'bigram')
-	utility.count_terms(docs, 'trigram')
+	utility.count_tokens(docs, 'unigram')
+	utility.count_tokens(docs, 'bigram')
+	utility.count_tokens(docs, 'trigram')
 
 def build_dictionary(docs, key):
 	terms = set()
