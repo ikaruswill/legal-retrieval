@@ -1,5 +1,5 @@
 # Ignore data and query files
-intelllex-sg/
+intelllex*/
 queries/
 
 # Byte-compiled / optimized / DLL files
