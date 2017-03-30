@@ -1,7 +1,7 @@
 from string import punctuation
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus.stopwords import stopwords
+from nltk.corpus import stopwords
 from nltk.util import ngrams
 from collections import Counter
 

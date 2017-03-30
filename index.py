@@ -34,7 +34,8 @@ def extract_doc(file_path):
 	root = xml.etree.ElementTree.parse(file_path).getroot()
 	for child in root:
 		key = child.attrib['name']
-		doc[key] = parse_child(child) if key not in ignored_tag_names
+		if key not in ignored_tag_names:
+			doc[key] = parse_child(child) 
 
 	return doc
 	
