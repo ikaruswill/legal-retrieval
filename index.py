@@ -154,6 +154,7 @@ def main():
 
 	delete_key(docs, 'bigram')
 	copy_key(docs, content_key, 'trigram')
+	delete_key(docs, content_key)
 	utility.generate_ngrams(docs, 'trigram', 3, False)
 	utility.count_tokens(docs, 'trigram')
 	lengths = build_and_populate_lengths(docs, 'trigram')
