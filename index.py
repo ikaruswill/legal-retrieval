@@ -91,6 +91,7 @@ def build_and_populate_postings(docs, dictionary, key):
 		postings.append(get_term_postings(docs, key, term))
 
 	return postings
+			term['doc_freq'] = len(term_postings)
 
 def get_term_postings(docs, key, term):
 	term_postings = []
@@ -105,11 +106,6 @@ def get_term_postings(docs, key, term):
 				term_postings.append((gap, freq))
 
 	return term_postings
-
-
-def populate_dictionary(dictionary, postings):
-	for term, dict_item in dictionary.items():
-		dictionary[term]['doc_freq'] = len(postings[dict_item['index']])
 
 def copy_key(dicts, src_key, dest_key):
 	for item in dicts:
@@ -148,7 +144,6 @@ def main():
 	lengths = build_and_populate_lengths(docs, 'unigram')
 	dictionary = build_dictionary(docs, 'unigram')
 	postings = build_and_populate_postings(docs, dictionary, 'unigram')
-	populate_dictionary(dictionary, postings)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 	save_postings(postings, postings_path)
@@ -160,7 +155,6 @@ def main():
 	lengths = build_and_populate_lengths(docs, 'bigram')
 	dictionary = build_dictionary(docs, 'bigram')
 	postings = build_and_populate_postings(docs, dictionary, 'bigram')
-	populate_dictionary(dictionary, postings)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 	save_postings(postings, postings_path)
@@ -173,7 +167,6 @@ def main():
 	lengths = build_and_populate_lengths(docs, 'trigram')
 	dictionary = build_dictionary(docs, 'trigram')
 	postings = build_and_populate_postings(docs, dictionary, 'trigram')
-	populate_dictionary(dictionary, postings)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 	save_postings(postings, postings_path)
