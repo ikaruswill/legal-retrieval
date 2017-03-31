@@ -44,7 +44,7 @@ def extract_doc(file_path):
 def load_xml_data(dir_doc):
 	docs = {}
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
-		for name in filenames:
+		for name in sorted(filenames):
 			if name.endswith('.xml'):
 				file_path = os.path.join(dirpath, name)
 				doc_id = os.path.splitext(name)[0]
