@@ -86,12 +86,19 @@ def build_and_populate_lengths(docs, key):
 	return lengths
 
 # Also modifies dictionary by adding doc_freq key for each term
-def build_and_populate_postings(docs, key, dictionary, postings_path):
-	with open(postings_path, 'ab+') as f:
-		for term in dictionary:
+def generate_and_save_postings(docs, key, dictionary, postings_path):
+	tempfile_path = 'index.tmp'
+	with open(postings_path, 'ab+') as postings_handle,\
+	open(tempfile_path, 'wb+') as tempfile_handle:
+		seek_table = []
+		cumulative = 0
+		for term, item in dictionary.items():
 			term_postings = get_term_postings(docs, key, term)
-			term['doc_freq'] = len(term_postings)
-			write_term_postings(term_postings, f)
+			item['doc_freq'] = len(term_postings)
+			cumulative += write_term_postings(term_postings, tempfile_handle)
+			seek_table.append(cumulative)
+		save_seek_table(seek_table, postings_handle, tempfile_handle)
+	os.remove(tempfile_path)
 
 def get_term_postings(docs, key, term):
 	term_postings = []
@@ -121,21 +128,10 @@ def write_term_postings(term_postings, file_handle):
 	file_handle.write(pickled)
 	return len(pickled)
 
-def save_postings(postings, postings_path):
-	sizes = []
-	pickled_postings = []
-
-	cumulative = 0
-	for posting in postings:
-		pickled_posting = pickle.dumps(posting)
-		cumulative += len(pickled_posting)
-		sizes.append(cumulative)
-		pickled_postings.append(pickled_posting)
-
-	with open(postings_path, 'ab+') as f:
-		pickle.dump(sizes, f)
-		for pickled_posting in pickled_postings:
-			f.write(pickled_posting)
+# File must be opened in binary mode
+def save_seek_table(seek_table, postings_handle, tempfile_handle):
+	pickle.dump(seek_table, postings_handle)
+	postings_handle.write(tempfile_handle.read())
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
@@ -149,7 +145,7 @@ def main():
 	utility.count_tokens(docs, 'unigram')
 	lengths = build_and_populate_lengths(docs, 'unigram')
 	dictionary = build_dictionary(docs, 'unigram')
-	postings = build_and_populate_postings(docs, 'unigram', dictionary, postings_path)
+	generate_and_save_postings(docs, 'unigram', dictionary, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 
@@ -159,7 +155,7 @@ def main():
 	utility.count_tokens(docs, 'bigram')
 	lengths = build_and_populate_lengths(docs, 'bigram')
 	dictionary = build_dictionary(docs, 'bigram')
-	postings = build_and_populate_postings(docs, 'bigram', dictionary, postings_path)
+	generate_and_save_postings(docs, 'bigram', dictionary, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 
@@ -170,7 +166,7 @@ def main():
 	utility.count_tokens(docs, 'trigram')
 	lengths = build_and_populate_lengths(docs, 'trigram')
 	dictionary = build_dictionary(docs, 'trigram')
-	postings = build_and_populate_postings(docs, 'trigram', dictionary, postings_path)
+	generate_and_save_postings(docs, 'trigram', dictionary, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 
