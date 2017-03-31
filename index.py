@@ -55,18 +55,6 @@ def preprocess(docs, key):
 	utility.remove_punctuations(docs, key)
 	utility.remove_stopwords(docs, key)
 	utility.lemmatize(docs, key)
-	# Duplicate content key into unigram, bigram, trigram
-	for doc_id, doc in docs.items():
-		docs[doc_id]['unigram'] = docs[doc_id][key]
-		docs[doc_id]['bigram'] = docs[doc_id][key]
-		docs[doc_id]['trigram'] = docs[doc_id][key]
-		# Content key deleted to save memory
-		docs[doc_id].pop(key)
-	utility.generate_ngrams(docs, 'bigram', 2, False)
-	utility.generate_ngrams(docs, 'trigram', 3, False)
-	utility.count_tokens(docs, 'unigram')
-	utility.count_tokens(docs, 'bigram')
-	utility.count_tokens(docs, 'trigram')
 
 def build_dictionary(docs, key):
 	terms = set()
@@ -91,6 +79,14 @@ def build_and_populate_lengths(docs, key):
 
 	return lengths
 
+def copy_key(dict_of_dicts, src_key, dest_key, delete_key=None):
+	for key, item in dict_of_dicts.items():
+		dict_of_dicts[key][dest_key] = item[src_key]
+
+def delete_key(dict_of_dicts, delete_key):
+	for key, item in dict_of_dicts.items():
+		dict_of_dicts[key].pop(delete_key)
+
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
@@ -99,6 +95,19 @@ def main():
 	# ngram_keys = ['unigram', 'bigram', 'trigram']
 	docs = load_xml_data(dir_doc)
 	preprocess(docs, content_key)
+	copy_key(docs, content_key, 'unigram')
+	utility.count_tokens(docs, 'unigram')
+
+	delete_key(docs, 'unigram')
+	copy_key(docs, content_key, 'bigram')
+	utility.generate_ngrams(docs, 'bigram', 2, False)
+	utility.count_tokens(docs, 'bigram')
+
+	delete_key(docs, 'bigram')
+	copy_key(docs, content_key, 'trigram')
+	utility.generate_ngrams(docs, 'trigram', 3, False)
+	utility.count_tokens(docs, 'trigram')
+
 	lengths = build_and_populate_lengths(docs, content_key)
 
 	unigram_dictionary = build_dictionary(docs, 'unigram')
