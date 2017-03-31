@@ -1,6 +1,7 @@
-# Ignore data and query files
+# Ignore data, query and result files
 intelllex*/
 queries/
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
