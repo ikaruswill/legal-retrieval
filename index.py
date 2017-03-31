@@ -42,13 +42,12 @@ def extract_doc(file_path):
 	return doc
 	
 def load_xml_data(dir_doc):
-	docs = {}
+	docs = []
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		for name in sorted(filenames):
 			if name.endswith('.xml'):
 				file_path = os.path.join(dirpath, name)
-				doc_id = os.path.splitext(name)[0]
-				docs[name] = extract_doc(file_path)
+				docs.append(extract_doc(file_path))
 
 	return docs
 
@@ -60,7 +59,7 @@ def preprocess(docs, key):
 
 def build_dictionary(docs, key):
 	terms = set()
-	for doc_id, doc in docs.items():
+	for doc in docs:
 		terms.update(doc[key].keys())
 
 	sorted_terms = sorted(list(terms))
@@ -73,26 +72,27 @@ def build_dictionary(docs, key):
 
 def build_and_populate_lengths(docs, key):
 	lengths = {}
-	for doc_id, doc in docs.items():
+	for doc in docs:
 		sum_squares = 0
 		for term, freq in doc[key].items():
 			sum_squares += math.pow(1 + math.log10(freq), 2)
+		doc_id = doc['document_id']
 		lengths[doc_id] = math.sqrt(sum_squares)
 
 	return lengths
 
 def build_and_populate_postings(docs, dictionary, key):
 	postings = []
-	sorted_docs_items = sorted(docs.items())
 	for term in dictionary:
-		postings.append(get_term_postings(sorted_docs_items, key, term))
+		postings.append(get_term_postings(docs, key, term))
 
 	return postings
 
-def get_term_postings(sorted_docs_items, key, term):
+def get_term_postings(docs, key, term):
 	term_postings = []
-	for doc_id, doc in sorted_docs_items:
+	for doc in docs:
 		if term in doc[key]:
+			doc_id = doc['document_id']
 			freq = doc[key][term]
 			term_postings.append((doc_id, freq))
 
@@ -103,13 +103,13 @@ def populate_dictionary(dictionary, postings):
 	for term, dict_item in dictionary.items():
 		dictionary[term]['doc_freq'] = len(postings[dict_item['index']])
 
-def copy_key(dict_of_dicts, src_key, dest_key):
-	for key, item in dict_of_dicts.items():
-		dict_of_dicts[key][dest_key] = item[src_key]
+def copy_key(dicts, src_key, dest_key):
+	for item in dicts:
+		item[dest_key] = item[src_key]
 
-def delete_key(dict_of_dicts, delete_key):
-	for key, item in dict_of_dicts.items():
-		dict_of_dicts[key].pop(delete_key)
+def delete_key(dicts, delete_key):
+	for item in dicts:
+		item.pop(delete_key)
 
 def save_postings(postings, postings_path):
 	sizes = []
