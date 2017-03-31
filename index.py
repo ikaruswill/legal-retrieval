@@ -129,24 +129,37 @@ def main():
 	preprocess(docs, content_key)
 	copy_key(docs, content_key, 'unigram')
 	utility.count_tokens(docs, 'unigram')
+	lengths = build_and_populate_lengths(docs, 'unigram')
+	dictionary = build_dictionary(docs, 'unigram')
+	postings = build_and_populate_postings(docs, dictionary, 'unigram')
+	populate_dictionary(dictionary, postings)
+	utility.save_object(dictionary, dict_path)
+	utility.save_object(lengths, lengths_path)
+	save_postings(postings, postings_path)
 
 	delete_key(docs, 'unigram')
 	copy_key(docs, content_key, 'bigram')
 	utility.generate_ngrams(docs, 'bigram', 2, False)
 	utility.count_tokens(docs, 'bigram')
+	lengths = build_and_populate_lengths(docs, 'bigram')
+	dictionary = build_dictionary(docs, 'bigram')
+	postings = build_and_populate_postings(docs, dictionary, 'bigram')
+	populate_dictionary(dictionary, postings)
+	utility.save_object(dictionary, dict_path)
+	utility.save_object(lengths, lengths_path)
+	save_postings(postings, postings_path)
 
 	delete_key(docs, 'bigram')
 	copy_key(docs, content_key, 'trigram')
 	utility.generate_ngrams(docs, 'trigram', 3, False)
 	utility.count_tokens(docs, 'trigram')
-
-	lengths = build_and_populate_lengths(docs, content_key)
-
-	unigram_dictionary = build_dictionary(docs, 'unigram')
-	bigram_dictionary = build_dictionary(docs, 'bigram')
-	trigram_dictionary = build_dictionary(docs, 'trigram')
-
-
+	lengths = build_and_populate_lengths(docs, 'trigram')
+	dictionary = build_dictionary(docs, 'trigram')
+	postings = build_and_populate_postings(docs, dictionary, 'trigram')
+	populate_dictionary(dictionary, postings)
+	utility.save_object(dictionary, dict_path)
+	utility.save_object(lengths, lengths_path)
+	save_postings(postings, postings_path)
 
 if __name__ == '__main__':
 	dir_doc = dict_path = postings_path = lengths_path = None
