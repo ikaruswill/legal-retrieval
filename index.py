@@ -85,13 +85,13 @@ def build_and_populate_lengths(docs, key):
 
 	return lengths
 
-def build_and_populate_postings(docs, dictionary, key):
-	postings = []
-	for term in dictionary:
-		postings.append(get_term_postings(docs, key, term))
-
-	return postings
+# Also modifies dictionary by adding doc_freq key for each term
+def build_and_populate_postings(docs, key, dictionary, postings_path):
+	with open(postings_path, 'ab+') as f:
+		for term in dictionary:
+			term_postings = get_term_postings(docs, key, term)
 			term['doc_freq'] = len(term_postings)
+			write_term_postings(term_postings, f)
 
 def get_term_postings(docs, key, term):
 	term_postings = []
@@ -114,6 +114,12 @@ def copy_key(dicts, src_key, dest_key):
 def delete_key(dicts, delete_key):
 	for item in dicts:
 		item.pop(delete_key)
+
+# File must be opened in binary mode
+def write_term_postings(term_postings, file_handle):
+	pickled = pickle.dumps(term_postings)
+	file_handle.write(pickled)
+	return len(pickled)
 
 def save_postings(postings, postings_path):
 	sizes = []
@@ -143,10 +149,9 @@ def main():
 	utility.count_tokens(docs, 'unigram')
 	lengths = build_and_populate_lengths(docs, 'unigram')
 	dictionary = build_dictionary(docs, 'unigram')
-	postings = build_and_populate_postings(docs, dictionary, 'unigram')
+	postings = build_and_populate_postings(docs, 'unigram', dictionary, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
-	save_postings(postings, postings_path)
 
 	delete_key(docs, 'unigram')
 	copy_key(docs, content_key, 'bigram')
@@ -154,10 +159,9 @@ def main():
 	utility.count_tokens(docs, 'bigram')
 	lengths = build_and_populate_lengths(docs, 'bigram')
 	dictionary = build_dictionary(docs, 'bigram')
-	postings = build_and_populate_postings(docs, dictionary, 'bigram')
+	postings = build_and_populate_postings(docs, 'bigram', dictionary, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
-	save_postings(postings, postings_path)
 
 	delete_key(docs, 'bigram')
 	copy_key(docs, content_key, 'trigram')
@@ -166,10 +170,9 @@ def main():
 	utility.count_tokens(docs, 'trigram')
 	lengths = build_and_populate_lengths(docs, 'trigram')
 	dictionary = build_dictionary(docs, 'trigram')
-	postings = build_and_populate_postings(docs, dictionary, 'trigram')
+	postings = build_and_populate_postings(docs, 'trigram', dictionary, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
-	save_postings(postings, postings_path)
 
 if __name__ == '__main__':
 	dir_doc = dict_path = postings_path = lengths_path = None
