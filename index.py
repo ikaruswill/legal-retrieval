@@ -70,9 +70,8 @@ def build_dictionary(docs, key):
 
 	return dictionary
 
-def build_inverted_dictionary(dictionary):
-	return [term for term, item in sorted(dictionary.items())]
-
+# def build_inverted_dictionary(dictionary):
+# 	return [term for term, item in sorted(dictionary.items())]
 
 def build_and_populate_lengths(docs, key):
 	lengths = {}
@@ -87,18 +86,12 @@ def build_and_populate_lengths(docs, key):
 
 # Also modifies dictionary by adding doc_freq key for each term
 def generate_and_save_postings(docs, key, dictionary, postings_path):
-	tempfile_path = 'index.tmp'
-	with open(postings_path, 'ab+') as postings_handle,\
-	open(tempfile_path, 'wb+') as tempfile_handle:
-		seek_table = []
-		cumulative = 0
-		for term, item in dictionary.items():
+	with open(postings_path, 'a+') as f:
+		for term, item in sorted(dictionary.items()):
 			term_postings = get_term_postings(docs, key, term)
 			item['doc_freq'] = len(term_postings)
-			cumulative += write_term_postings(term_postings, tempfile_handle)
-			seek_table.append(cumulative)
-		save_seek_table(seek_table, postings_handle, tempfile_handle)
-	os.remove(tempfile_path)
+			json_string = json.dumps(term_postings)
+			f.write(json_string + '\n')
 
 def get_term_postings(docs, key, term):
 	term_postings = []
@@ -121,17 +114,6 @@ def copy_key(dicts, src_key, dest_key):
 def delete_key(dicts, delete_key):
 	for item in dicts:
 		item.pop(delete_key)
-
-# File must be opened in binary mode
-def write_term_postings(term_postings, file_handle):
-	serialized = json.dumps(term_postings)
-	file_handle.write(serialized)
-	return len(serialized)
-
-# File must be opened in binary mode
-def save_seek_table(seek_table, postings_handle, tempfile_handle):
-	json.dump(seek_table, postings_handle)
-	postings_handle.write(tempfile_handle.read())
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
