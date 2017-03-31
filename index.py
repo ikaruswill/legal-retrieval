@@ -79,6 +79,18 @@ def build_and_populate_lengths(docs, key):
 
 	return lengths
 
+def build_and_populate_postings(docs, dictionary, key):
+	postings = []
+	for term in dictionary:
+		postings.append([])
+
+	for doc_id, doc in sorted(docs.items()):
+		for term, freq in doc[key]:
+			index = dictionary[term]
+			postings[index].append((doc_id, freq))
+
+	return postings
+
 def copy_key(dict_of_dicts, src_key, dest_key):
 	for key, item in dict_of_dicts.items():
 		dict_of_dicts[key][dest_key] = item[src_key]
