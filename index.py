@@ -114,7 +114,7 @@ def save_postings(postings, postings_path):
 		sizes.append(cumulative)
 		pickled_postings.append(pickled_posting)
 
-	with open(postings_path, 'wb') as f:
+	with open(postings_path, 'ab+') as f:
 		pickle.dump(sizes, f)
 		for pickled_posting in pickled_postings:
 			f.write(pickled_posting)
