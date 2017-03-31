@@ -37,3 +37,7 @@ def generate_ngrams(docs, key, n, pad, start_sym='<s>', end_sym='</s>'):
 def count_tokens(docs, key):
 	for doc_id, doc in docs.items():
 		docs[doc_id][key] = Counter(doc[key])
+
+def save_object(object, path):
+	with open(path, 'wb') as f:
+		pickle.dump(object, f)
