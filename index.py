@@ -4,7 +4,7 @@ import os
 import xml.etree.ElementTree
 import utility
 import math
-import pickle
+import json
 
 ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 
@@ -124,13 +124,13 @@ def delete_key(dicts, delete_key):
 
 # File must be opened in binary mode
 def write_term_postings(term_postings, file_handle):
-	pickled = pickle.dumps(term_postings)
-	file_handle.write(pickled)
-	return len(pickled)
+	serialized = json.dumps(term_postings)
+	file_handle.write(serialized)
+	return len(serialized)
 
 # File must be opened in binary mode
 def save_seek_table(seek_table, postings_handle, tempfile_handle):
-	pickle.dump(seek_table, postings_handle)
+	json.dump(seek_table, postings_handle)
 	postings_handle.write(tempfile_handle.read())
 
 def usage():
