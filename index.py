@@ -3,6 +3,8 @@ import sys
 import os
 import xml.etree.ElementTree
 import utility
+import math
+import pickle
 
 ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 

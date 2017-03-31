@@ -4,6 +4,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
 from nltk.util import ngrams
 from collections import Counter
+import pickle
 
 # In-place
 def tokenize(docs, key):
