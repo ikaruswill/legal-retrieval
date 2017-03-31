@@ -103,6 +103,22 @@ def delete_key(dict_of_dicts, delete_key):
 	for key, item in dict_of_dicts.items():
 		dict_of_dicts[key].pop(delete_key)
 
+def save_postings(postings, postings_path):
+	sizes = []
+	pickled_postings = []
+
+	cumulative = 0
+	for posting in postings:
+		pickled_posting = pickle.dumps(posting)
+		cumulative += len(pickled_posting)
+		sizes.append(cumulative)
+		pickled_postings.append(pickled_posting)
+
+	with open(postings_path, 'wb') as f:
+		pickle.dump(sizes, f)
+		for pickled_posting in pickled_postings:
+			f.write(pickled_posting)
+
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
