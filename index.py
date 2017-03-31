@@ -83,13 +83,14 @@ def build_and_populate_lengths(docs, key):
 
 def build_and_populate_postings(docs, dictionary, key):
 	postings = []
+	sorted_docs_items = sorted(docs.items())
 	for term in dictionary:
-		postings.append([])
-
-	for doc_id, doc in sorted(docs.items()):
-		for term, freq in doc[key].items():
-			index = dictionary[term]['index']
-			postings[index].append((doc_id, freq))
+		term_postings = []
+		for doc_id, doc in sorted_docs_items:
+			if term in doc[key]:
+				freq = doc[key][term]
+				term_postings.append((doc_id, freq))
+		postings.append(term_postings)
 
 	return postings
 
