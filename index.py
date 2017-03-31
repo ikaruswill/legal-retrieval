@@ -183,8 +183,11 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
-	os.remove(dict_path)
-	os.remove(postings_path)
-	os.remove(lengths_path)
+	try:
+	    os.remove(dict_path)
+		os.remove(postings_path)
+		os.remove(lengths_path)
+	except OSError:
+    	pass
 
 	main()
