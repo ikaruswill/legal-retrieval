@@ -91,6 +91,10 @@ def build_and_populate_postings(docs, dictionary, key):
 
 	return postings
 
+def populate_dictionary(dictionary, postings):
+	for term, dict_item in dictionary.items():
+		dictionary[term]['doc_freq'] = len(postings[dict_item['index']])
+
 def copy_key(dict_of_dicts, src_key, dest_key):
 	for key, item in dict_of_dicts.items():
 		dict_of_dicts[key][dest_key] = item[src_key]
