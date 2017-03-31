@@ -70,6 +70,10 @@ def build_dictionary(docs, key):
 
 	return dictionary
 
+def build_inverted_dictionary(dictionary):
+	return [term for term, item in sorted(dictionary.items())]
+
+
 def build_and_populate_lengths(docs, key):
 	lengths = {}
 	for doc in docs:
