@@ -60,7 +60,7 @@ def preprocess(docs, key):
 
 def build_dictionary(docs, key):
 	terms = set()
-	for doc in docs:
+	for doc_id, doc in docs.items():
 		terms.update(doc[key].keys())
 
 	sorted_terms = sorted(list(terms))
@@ -87,8 +87,8 @@ def build_and_populate_postings(docs, dictionary, key):
 		postings.append([])
 
 	for doc_id, doc in sorted(docs.items()):
-		for term, freq in doc[key]:
-			index = dictionary[term]
+		for term, freq in doc[key].items():
+			index = dictionary[term]['index']
 			postings[index].append((doc_id, freq))
 
 	return postings
