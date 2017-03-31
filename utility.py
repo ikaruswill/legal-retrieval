@@ -40,5 +40,5 @@ def count_tokens(docs, key):
 		doc[key] = Counter(doc[key])
 
 def save_object(object, path):
-	with open(path, 'wb') as f:
+	with open(path, 'w') as f:
 		json.dump(object, f)
