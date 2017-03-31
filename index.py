@@ -100,10 +100,10 @@ def get_term_postings(docs, key, term):
 			doc_id = doc['document_id']
 			freq = doc[key][term]
 			if len(term_postings) == 0:
-				term_postings.append((doc_id, freq))
+				doc_id = int(doc_id)
 			else:
-				gap = str(int(doc_id) - int(term_postings[-1][0]))
-				term_postings.append((gap, freq))
+				gap = int(doc_id) - int(term_postings[-1][0])
+			term_postings.append((doc_id, freq))
 
 	return term_postings
 
