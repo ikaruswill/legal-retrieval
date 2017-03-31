@@ -94,7 +94,11 @@ def get_term_postings(docs, key, term):
 		if term in doc[key]:
 			doc_id = doc['document_id']
 			freq = doc[key][term]
-			term_postings.append((doc_id, freq))
+			if len(term_postings) == 0:
+				term_postings.append((doc_id, freq))
+			else:
+				gap = str(int(doc_id) - int(term_postings[-1][0]))
+				term_postings.append((gap, freq))
 
 	return term_postings
 
