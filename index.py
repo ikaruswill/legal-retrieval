@@ -79,7 +79,7 @@ def build_and_populate_lengths(docs, key):
 
 	return lengths
 
-def copy_key(dict_of_dicts, src_key, dest_key, delete_key=None):
+def copy_key(dict_of_dicts, src_key, dest_key):
 	for key, item in dict_of_dicts.items():
 		dict_of_dicts[key][dest_key] = item[src_key]
 
