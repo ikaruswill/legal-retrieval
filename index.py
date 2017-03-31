@@ -85,14 +85,19 @@ def build_and_populate_postings(docs, dictionary, key):
 	postings = []
 	sorted_docs_items = sorted(docs.items())
 	for term in dictionary:
-		term_postings = []
-		for doc_id, doc in sorted_docs_items:
-			if term in doc[key]:
-				freq = doc[key][term]
-				term_postings.append((doc_id, freq))
-		postings.append(term_postings)
+		postings.append(get_term_postings(sorted_docs_items, key, term))
 
 	return postings
+
+def get_term_postings(sorted_docs_items, key, term):
+	term_postings = []
+	for doc_id, doc in sorted_docs_items:
+		if term in doc[key]:
+			freq = doc[key][term]
+			term_postings.append((doc_id, freq))
+
+	return term_postings
+
 
 def populate_dictionary(dictionary, postings):
 	for term, dict_item in dictionary.items():
