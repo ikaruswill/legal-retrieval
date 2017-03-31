@@ -184,10 +184,10 @@ if __name__ == '__main__':
 		sys.exit(2)
 
 	try:
-	    os.remove(dict_path)
+		os.remove(dict_path)
 		os.remove(postings_path)
 		os.remove(lengths_path)
 	except OSError:
-    	pass
+		pass
 
 	main()
