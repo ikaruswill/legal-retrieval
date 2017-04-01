@@ -116,7 +116,7 @@ def save_postings(postings, postings_path):
 	with open(postings_path, 'ab+') as f: 
 		pickle.dump(sizes, f) 
 		for serialized_posting in serialized_postings: 
-			f.write(serialized_posting + '\n')
+			f.write(serialized_posting)
 
 
 def copy_key(dicts, src_key, dest_key):
