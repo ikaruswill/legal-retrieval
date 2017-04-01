@@ -55,7 +55,7 @@ def preprocess(docs, key):
 	utility.tokenize(docs, key)
 	utility.remove_punctuations(docs, key)
 	utility.remove_stopwords(docs, key)
-	utility.lemmatize(docs, key)
+	utility.stem(docs, key)
 
 def build_dictionary(docs, key):
 	terms = set()
