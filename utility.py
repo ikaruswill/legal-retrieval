@@ -48,7 +48,7 @@ def count_tokens(docs, key):
 
 def save_object(object, path):
 	with open(path, 'ab+') as f:
-		pickle.dump(object)
+		pickle.dump(object, f)
 
 def load_object(object, path):
 	with open(path, 'rb') as f:
