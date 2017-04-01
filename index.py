@@ -94,11 +94,12 @@ def build_and_populate_postings(docs, key, dictionary):
 		doc_id = int(doc['document_id'])
 		for term, freq in doc[key].items():
 			index = dictionary[term]['index']
-			if len(postings[index]) > 0:
-				gap = doc_id - postings[index][-1][0]
-				postings[index].append((gap, freq))
-			else:
-				postings[index].append((doc_id, freq))
+			# if len(postings[index]) > 0:
+			# 	gap = doc_id - postings[index][-1][0]
+			# 	postings[index].append((gap, freq))
+			# else:
+			# 	postings[index].append((doc_id, freq))
+			postings[index].append((doc_id, freq))
 
 	return postings
 
