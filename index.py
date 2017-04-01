@@ -113,7 +113,7 @@ def save_postings(postings, postings_path):
 		sizes.append(cumulative) 
 		serialized_postings.append(serialized_posting) 
 
-	with open(postings_path, 'a+') as f: 
+	with open(postings_path, 'ab+') as f: 
 		pickle.dump(sizes, f) 
 		for serialized_posting in serialized_postings: 
 			f.write(serialized_posting + '\n')
