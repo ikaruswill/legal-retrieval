@@ -1,6 +1,7 @@
 from string import punctuation
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.stem.porter import PorterStemmer
 from nltk.corpus import stopwords
 from nltk.util import ngrams
 from collections import Counter
@@ -28,6 +29,12 @@ def lemmatize(docs, key):
 	wnl = WordNetLemmatizer()
 	for doc in docs:
 		doc[key] = [wnl.lemmatize(token) for token in doc[key]]
+
+# In-place, requires tokenized, stopwords removed.
+def stem(docs, key):
+	stemmer = PorterStemmer()
+	for doc in docs:
+		doc[key] = [stemmer.stem(token) for token in doc[key]]
 
 # In-place
 def generate_ngrams(docs, key, n, pad=False, start_sym='<s>', end_sym='</s>'):
