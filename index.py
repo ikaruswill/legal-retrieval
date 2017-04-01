@@ -4,7 +4,7 @@ import os
 import xml.etree.ElementTree
 import utility
 import math
-import json
+import pickle
 
 ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 
@@ -108,13 +108,13 @@ def save_postings(postings, postings_path):
 
 	cumulative = 0 
 	for posting in postings: 
-		serialized_posting = json.dumps(posting) 
+		serialized_posting = pickle.dumps(posting) 
 		cumulative += len(serialized_posting) 
 		sizes.append(cumulative) 
 		serialized_postings.append(serialized_posting) 
 
 	with open(postings_path, 'a+') as f: 
-		json.dump(sizes, f) 
+		pickle.dump(sizes, f) 
 		for serialized_posting in serialized_postings: 
 			f.write(serialized_posting + '\n')
 

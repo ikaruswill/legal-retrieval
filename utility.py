@@ -4,7 +4,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
 from nltk.util import ngrams
 from collections import Counter
-import json
+import pickle
 
 # In-place
 def tokenize(docs, key):
@@ -40,6 +40,5 @@ def count_tokens(docs, key):
 		doc[key] = Counter(doc[key])
 
 def save_object(object, path):
-	with open(path, 'a+') as f:
-		json_string = json.dumps(object, f)
-		f.write(json_string + '\n')
+	with open(path, 'ab+') as f:
+		pickle.dump(object)
