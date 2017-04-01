@@ -85,27 +85,39 @@ def build_and_populate_lengths(docs, key):
 	return lengths
 
 # Also modifies dictionary by adding doc_freq key for each term
-def generate_and_save_postings(docs, key, dictionary, postings_path):
-	with open(postings_path, 'a+') as f:
-		for term, item in sorted(dictionary.items()):
-			term_postings = get_term_postings(docs, key, term)
-			item['doc_freq'] = len(term_postings)
-			json_string = json.dumps(term_postings)
-			f.write(json_string + '\n')
+def build_and_populate_postings(docs, key, dictionary):
+	postings = []
+	for term in dictionary:
+		postings.append([])
 
-def get_term_postings(docs, key, term):
-	term_postings = []
 	for doc in docs:
-		if term in doc[key]:
-			doc_id = doc['document_id']
-			freq = doc[key][term]
-			if len(term_postings) == 0:
-				doc_id = int(doc_id)
+		doc_id = int(doc['document_id'])
+		for term, freq in doc[key].items():
+			index = dictionary[term]['index']
+			if len(postings[index]) > 0:
+				gap = doc_id - postings[index][-1][0]
+				postings[index].append((gap, freq))
 			else:
-				gap = int(doc_id) - int(term_postings[-1][0])
-			term_postings.append((doc_id, freq))
+				postings[index].append((doc_id, freq))
 
-	return term_postings
+	return postings
+
+def save_postings(postings, postings_path): 
+	sizes = [] 
+	serialized_postings = [] 
+
+	cumulative = 0 
+	for posting in postings: 
+		serialized_posting = json.dumps(posting) 
+		cumulative += len(serialized_posting) 
+		sizes.append(cumulative) 
+		serialized_postings.append(serialized_posting) 
+
+	with open(postings_path, 'a+') as f: 
+		json.dump(sizes, f) 
+		for serialized_posting in serialized_postings: 
+			f.write(serialized_posting + '\n')
+
 
 def copy_key(dicts, src_key, dest_key):
 	for item in dicts:
@@ -127,7 +139,8 @@ def main():
 	utility.count_tokens(docs, 'unigram')
 	lengths = build_and_populate_lengths(docs, 'unigram')
 	dictionary = build_dictionary(docs, 'unigram')
-	generate_and_save_postings(docs, 'unigram', dictionary, postings_path)
+	postings = build_and_populate_postings(docs, 'unigram', dictionary)
+	save_postings(postings, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 
@@ -137,7 +150,8 @@ def main():
 	utility.count_tokens(docs, 'bigram')
 	lengths = build_and_populate_lengths(docs, 'bigram')
 	dictionary = build_dictionary(docs, 'bigram')
-	generate_and_save_postings(docs, 'bigram', dictionary, postings_path)
+	postings = build_and_populate_postings(docs, 'bigram', dictionary)
+	save_postings(postings, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 
@@ -148,7 +162,8 @@ def main():
 	utility.count_tokens(docs, 'trigram')
 	lengths = build_and_populate_lengths(docs, 'trigram')
 	dictionary = build_dictionary(docs, 'trigram')
-	generate_and_save_postings(docs, 'trigram', dictionary, postings_path)
+	postings = build_and_populate_postings(docs, 'trigram', dictionary)
+	save_postings(postings, postings_path)
 	utility.save_object(dictionary, dict_path)
 	utility.save_object(lengths, lengths_path)
 
