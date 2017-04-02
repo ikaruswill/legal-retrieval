@@ -9,6 +9,9 @@ def get_posting(index, start_offset, postings_offsets):
 	posting = pickle.load(postings_file)
 	return posting
 
+def handle_query(query):
+	phrases = list(map(lambda x: x.strip('" '), query.split('AND')))
+
 def main():
 	dictionary = utility.load_object(dict_path)
 	lengths = utility.load_object(lengths_path)
@@ -16,6 +19,12 @@ def main():
 	postings_file = open(postings_path, 'rb')
 	postings_offsets = pickle.load(postings_file).insert(0, 0)
 	start_offset = postings_file.tell()
+
+	with open(query_path, 'r') as f:
+		for line in f:
+			line = line.strip()
+			if line != '':
+				result = handle_query(line)
 
 	postings_file.close()
 
@@ -45,3 +54,5 @@ if __name__ == '__main__':
 	if dict_path == None or postings_path == None or query_path == None or output_path == None or lengths_path == None:
 		usage()
 		sys.exit(2)
+
+	main()
