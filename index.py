@@ -119,6 +119,9 @@ def save_postings(postings, postings_path):
 		for serialized_posting in serialized_postings: 
 			f.write(serialized_posting)
 
+def iter_key_call(iterable, key, function, *args, **kwargs):
+	for dict_item in iterable:
+		dict_item[key] = function(dict_item[key], *args, **kwargs)
 
 def copy_key(dicts, src_key, dest_key):
 	for item in dicts:
