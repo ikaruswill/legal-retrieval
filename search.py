@@ -1,6 +1,5 @@
 import getopt
 import sys
-import pickle
 import utility
 import math
 import heapq
@@ -36,7 +35,7 @@ class ScoreDocIDPair(object):
 def get_posting(index, start_offset, postings_offsets):
 	byte_offset = start_offset + postings_offsets[index]
 	postings_file.seek(byte_offset, 0)
-	posting = pickle.load(postings_file)
+	posting = utility.load_object(postings_file)
 	return posting
 
 def strip_and_preproces(line):
@@ -114,17 +113,17 @@ def main():
 
 	postings_file = open(postings_path, 'rb')
 
-	unigram_postings_offset = pickle.load(postings_file)
+	unigram_postings_offset = utility.load_object(postings_file)
 	unigram_postings_offset.insert(0, 0)
 	unigram_start_offset = postings_file.tell()
 	postings_file.seek(unigram_postings_offset[-1], 1)
 
-	bigram_postings_offset = pickle.load(postings_file)
+	bigram_postings_offset = utility.load_object(postings_file)
 	bigram_postings_offset.insert(0, 0)
 	bigram_start_offset = postings_file.tell()
 	postings_file.seek(bigram_postings_offset[-1], 1)
 
-	trigram_postings_offset = pickle.load(postings_file)
+	trigram_postings_offset = utility.load_object(postings_file)
 	trigram_postings_offset.insert(0, 0)
 	trigram_start_offset = postings_file.tell()
 	print('posting loaded')
