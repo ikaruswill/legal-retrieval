@@ -103,7 +103,7 @@ def build_and_populate_postings(docs, key, dictionary):
 
 	return postings
 
-def save_postings(postings, postings_path): 
+def save_postings(postings, f): 
 	sizes = [] 
 	serialized_postings = [] 
 
@@ -114,10 +114,9 @@ def save_postings(postings, postings_path):
 		sizes.append(cumulative) 
 		serialized_postings.append(serialized_posting) 
 
-	with open(postings_path, 'ab+') as f: 
-		pickle.dump(sizes, f) 
-		for serialized_posting in serialized_postings: 
-			f.write(serialized_posting)
+	pickle.dump(sizes, f) 
+	for serialized_posting in serialized_postings: 
+		f.write(serialized_posting)
 
 def iter_key_call(iterable, key, function, *args, **kwargs):
 	for dict_item in iterable:
@@ -135,6 +134,11 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	# Append binary mode for repeated pickling and creation of new file
+	dict_file = open(dict_path, 'ab+')
+	lengths_file = open(lengths_path, 'ab+')
+	postings_file = open(postings_path, 'ab+')
+
 	content_key = 'content'
 	# ngram_keys = ['unigram', 'bigram', 'trigram']
 	docs = load_xml_data(dir_doc)
@@ -144,9 +148,9 @@ def main():
 	lengths = build_and_populate_lengths(docs, 'unigram')
 	dictionary = build_dictionary(docs, 'unigram')
 	postings = build_and_populate_postings(docs, 'unigram', dictionary)
-	save_postings(postings, postings_path)
-	utility.save_object(dictionary, dict_path)
-	utility.save_object(lengths, lengths_path)
+	save_postings(postings, postings_file)
+	utility.save_object(dictionary, dict_file)
+	utility.save_object(lengths, lengths_file)
 
 	delete_key(docs, 'unigram')
 	copy_key(docs, content_key, 'bigram')
@@ -155,9 +159,9 @@ def main():
 	lengths = build_and_populate_lengths(docs, 'bigram')
 	dictionary = build_dictionary(docs, 'bigram')
 	postings = build_and_populate_postings(docs, 'bigram', dictionary)
-	save_postings(postings, postings_path)
-	utility.save_object(dictionary, dict_path)
-	utility.save_object(lengths, lengths_path)
+	save_postings(postings, postings_file)
+	utility.save_object(dictionary, dict_file)
+	utility.save_object(lengths, lengths_file)
 
 	delete_key(docs, 'bigram')
 	copy_key(docs, content_key, 'trigram')
@@ -167,9 +171,13 @@ def main():
 	lengths = build_and_populate_lengths(docs, 'trigram')
 	dictionary = build_dictionary(docs, 'trigram')
 	postings = build_and_populate_postings(docs, 'trigram', dictionary)
-	save_postings(postings, postings_path)
-	utility.save_object(dictionary, dict_path)
-	utility.save_object(lengths, lengths_path)
+	save_postings(postings, postings_file)
+	utility.save_object(dictionary, dict_file)
+	utility.save_object(lengths, lengths_file)
+
+	dict_file.close()
+	lengths_file.close()
+	postings_file.close()
 
 if __name__ == '__main__':
 	dir_doc = dict_path = postings_path = lengths_path = None
