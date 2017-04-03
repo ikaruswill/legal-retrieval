@@ -52,10 +52,10 @@ def load_xml_data(dir_doc):
 	return docs
 
 def preprocess(docs, key):
-	utility.tokenize(docs, key)
-	utility.remove_punctuations(docs, key)
-	utility.remove_stopwords(docs, key)
-	utility.stem(docs, key)
+	iter_key_call(docs, key, utility.tokenize)
+	iter_key_call(docs, key, utility.remove_punctuations)
+	iter_key_call(docs, key, utility.remove_stopwords)
+	iter_key_call(docs, key, utility.stem)
 
 def build_dictionary(docs, key):
 	terms = set()
@@ -140,7 +140,7 @@ def main():
 	docs = load_xml_data(dir_doc)
 	preprocess(docs, content_key)
 	copy_key(docs, content_key, 'unigram')
-	utility.count_tokens(docs, 'unigram')
+	iter_key_call(docs, 'unigram', utility.count_tokens)
 	lengths = build_and_populate_lengths(docs, 'unigram')
 	dictionary = build_dictionary(docs, 'unigram')
 	postings = build_and_populate_postings(docs, 'unigram', dictionary)
@@ -150,8 +150,8 @@ def main():
 
 	delete_key(docs, 'unigram')
 	copy_key(docs, content_key, 'bigram')
-	utility.generate_ngrams(docs, 'bigram', 2, False)
-	utility.count_tokens(docs, 'bigram')
+	iter_key_call(docs, 'bigram', utility.generate_ngrams, n=2)
+	iter_key_call(docs, 'bigram', utility.count_tokens)
 	lengths = build_and_populate_lengths(docs, 'bigram')
 	dictionary = build_dictionary(docs, 'bigram')
 	postings = build_and_populate_postings(docs, 'bigram', dictionary)
@@ -162,8 +162,8 @@ def main():
 	delete_key(docs, 'bigram')
 	copy_key(docs, content_key, 'trigram')
 	delete_key(docs, content_key)
-	utility.generate_ngrams(docs, 'trigram', 3, False)
-	utility.count_tokens(docs, 'trigram')
+	iter_key_call(docs, 'trigram', utility.generate_ngrams, n=3)
+	iter_key_call(docs, 'trigram', utility.count_tokens)
 	lengths = build_and_populate_lengths(docs, 'trigram')
 	dictionary = build_dictionary(docs, 'trigram')
 	postings = build_and_populate_postings(docs, 'trigram', dictionary)

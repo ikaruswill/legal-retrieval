@@ -7,44 +7,30 @@ from nltk.util import ngrams
 from collections import Counter
 import pickle
 
-# In-place
-def tokenize(docs, key):
-	for doc in docs:
-		doc[key] = word_tokenize(doc[key].lower())
+def tokenize(string):
+		return word_tokenize(string.lower())
 
-# In-place, requires tokenized
-def remove_punctuations(docs, key):
+def remove_punctuations(tokens):
 	punctuation_set = set(punctuation)
-	for doc in docs:
-		doc[key] = [token for token in doc[key] if token not in punctuation_set]
+	return [token for token in tokens if token not in punctuation_set]
 
-# In-place, requires tokenized
-def remove_stopwords(docs, key):
+def remove_stopwords(tokens):
 	stopword_set = set(stopwords.words('english'))
-	for doc in docs:
-		doc[key] = [token for token in doc[key] if token not in stopword_set]
+	return [token for token in tokens if token not in stopword_set]
 
-# In-place, requires tokenized, stopwords removed.
-def lemmatize(docs, key):
+def lemmatize(tokens):
 	wnl = WordNetLemmatizer()
-	for doc in docs:
-		doc[key] = [wnl.lemmatize(token) for token in doc[key]]
+	return [wnl.lemmatize(token) for token in tokens]
 
-# In-place, requires tokenized, stopwords removed.
-def stem(docs, key):
+def stem(tokens):
 	stemmer = PorterStemmer()
-	for doc in docs:
-		doc[key] = [stemmer.stem(token) for token in doc[key]]
+	return [stemmer.stem(token) for token in tokens]
 
-# In-place
-def generate_ngrams(docs, key, n, pad=False, start_sym='<s>', end_sym='</s>'):
-	for doc in docs:
-		doc[key] = [' '.join(ngram) for ngram in ngrams(doc[key], n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
+def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
+	return [' '.join(ngram) for ngram in ngrams(tokens, n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
 
-# In-place, destructive
-def count_tokens(docs, key):
-	for doc in docs:
-		doc[key] = Counter(doc[key])
+def count_tokens(tokens):
+	return Counter(tokens)
 
 def save_object(object, path):
 	with open(path, 'ab+') as f:
