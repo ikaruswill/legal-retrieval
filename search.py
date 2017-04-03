@@ -40,15 +40,12 @@ def get_posting(index, start_offset, postings_offsets):
 	return posting
 
 def strip_and_preproces(line):
-	key = 'content'
-	#treat query as doc in order to preprocess
-	doc = {}
-	doc[key] = line.strip('" ')
-	utility.tokenize([doc], key)
-	utility.remove_punctuations([doc], key)
-	utility.remove_stopwords([doc], key)
-	utility.stem([doc], key)
-	return doc[key]
+	line = line.strip('" ')
+	line = utility.tokenize(line)
+	line = utility.remove_punctuations(line)
+	line = utility.remove_stopwords(line)
+	line = utility.stem(line)
+	return line
 
 def vsm(term, dictionary, posting_offset, start_offset, lengths):
 	scores = {}
@@ -104,17 +101,15 @@ def main():
 	global postings_file, unigram_start_offset, bigram_start_offset, trigram_start_offset
 
 	with open(dict_path, 'rb') as f:
-		bunigram_dict = pickle.load(f)
-		bigram_dict = pickle.load(f)
-		trigram_dict = pickle.load(f)
-		f.close()
+		unigram_dict = utility.load_object(f)
+		bigram_dict = utility.load_object(f)
+		trigram_dict = utility.load_object(f)
 	print('dict loaded')
 
 	with open(lengths_path, 'rb') as f:
-		unigram_lengths = pickle.load(f)
-		bigram_lengths = pickle.load(f)
-		trigram_lengths = pickle.load(f)
-		f.close()
+		unigram_lengths = utility.load_object(f)
+		bigram_lengths = utility.load_object(f)
+		trigram_lengths = utility.load_object(f)
 	print('lengths loaded')
 
 	postings_file = open(postings_path, 'rb')
@@ -140,7 +135,6 @@ def main():
 			print('###QUERY###', line)
 			if line != '':
 				result = handle_query(line)
-		f.close()
 
 	postings_file.close()
 
