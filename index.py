@@ -1,53 +1,20 @@
 import getopt
 import sys
 import os
-import xml.etree.ElementTree
 import utility
 import math
 import pickle
 
-ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
-
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
 
-# Whitelist fields for better performance in both space and time complexity
-def parse_child(child):
-	if child.tag == 'str':
-		return child.text
-	elif child.tag == 'date':
-		return child.text # Can do date parsing
-	elif child.tag == 'bool':
-		return str2bool(child.text)
-	elif child.tag == 'long':
-		return int(child.text) # Python 3 int does long implicitly
-	elif child.tag == 'float':
-		return float(child.text)
-	elif child.tag == 'arr':
-		arr = []
-		for grandchild in child:
-			arr.append(parse_child)
-		return arr
-	else:
-		exit('Unsupported tag: ', child.tag)
-
-def extract_doc(file_path):
-	doc = {}
-	root = xml.etree.ElementTree.parse(file_path).getroot()
-	for child in root:
-		key = child.attrib['name']
-		if key not in ignored_tag_names:
-			doc[key] = parse_child(child) 
-
-	return doc
-	
 def load_xml_data(dir_doc):
 	docs = []
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		for name in sorted(filenames):
 			if name.endswith('.xml'):
 				file_path = os.path.join(dirpath, name)
-				docs.append(extract_doc(file_path))
+				docs.append(utility.extract_doc(file_path))
 
 	return docs
 
@@ -103,19 +70,19 @@ def build_and_populate_postings(docs, key, dictionary):
 
 	return postings
 
-def save_postings(postings, f): 
-	sizes = [] 
-	serialized_postings = [] 
+def save_postings(postings, f):
+	sizes = []
+	serialized_postings = []
 
-	cumulative = 0 
-	for posting in postings: 
-		serialized_posting = pickle.dumps(posting) 
-		cumulative += len(serialized_posting) 
-		sizes.append(cumulative) 
-		serialized_postings.append(serialized_posting) 
+	cumulative = 0
+	for posting in postings:
+		serialized_posting = pickle.dumps(posting)
+		cumulative += len(serialized_posting)
+		sizes.append(cumulative)
+		serialized_postings.append(serialized_posting)
 
-	pickle.dump(sizes, f) 
-	for serialized_posting in serialized_postings: 
+	pickle.dump(sizes, f)
+	for serialized_posting in serialized_postings:
 		f.write(serialized_posting)
 
 def iter_key_call(iterable, key, function, *args, **kwargs):
