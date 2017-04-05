@@ -4,21 +4,26 @@ import utility
 from utility import ScoreDocIDPair
 
 
-POST_PROCESSOR_DIR = './query_exp_results'
+POST_PROCESSOR_DIR = './query_exp_results.txt'
 
 AVERAGING_POLICY = 0
 SUMMATION_POLICY = 1
-RECIPROCAL_RANK_POLICY = AVERAGING_POLICY
+MEAN_RECIPROCAL_RANK_POLICY = 2
+RANKING_POLICY = MEAN_RECIPROCAL_RANK_POLICY
 
 SAMPLE_SIZE = 20
 
 
 # averaging
-def apply_reciprocal_rank_policy(processed_record):
-	if RECIPROCAL_RANK_POLICY == SUMMATION_POLICY:
+def apply_ranking_policy(processed_record):
+	if RANKING_POLICY == SUMMATION_POLICY:
 		pass
-	elif RECIPROCAL_RANK_POLICY == AVERAGING_POLICY:
+	elif RANKING_POLICY == AVERAGING_POLICY:
 		processed_record['score_id_pair'].score /= processed_record['count']
+	elif RANKING_POLICY == MEAN_RECIPROCAL_RANK_POLICY:
+		processed_record['score_id_pair'].score = processed_record['mrr'] * -1  # bc of heapq
+	else:
+		print("Unknown policy selected. SUMMATION POLICY applied.")
 	return processed_record['score_id_pair']
 
 
@@ -27,20 +32,22 @@ def postprocess(query_expansion_results):
 
 	processed_records = {}
 	for query_expansion_result in query_expansion_results:
+		# actually bc query expansion use the entire doc as a phrase, is supposed to have only one phrasal_query_result
 		for phrasal_query_result in query_expansion_result:
-			for score_doc_id_pair in phrasal_query_result:
+			for rank, score_doc_id_pair in enumerate(phrasal_query_result):
 				if score_doc_id_pair.doc_id not in processed_records:
-					processed_records[score_doc_id_pair.doc_id] = {'score_id_pair': score_doc_id_pair, 'count': 0}
+					processed_records[score_doc_id_pair.doc_id] = {'score_id_pair': score_doc_id_pair, 'count': 0, 'mrr': 0}
 				processed_record = processed_records[score_doc_id_pair.doc_id]
-				processed_record['count'] += 1
 				processed_record['score_id_pair'].score += score_doc_id_pair.score
+				processed_record['count'] += 1
+				processed_record['mrr'] += (1.0 / (rank + 1))
 
 	for doc_id in processed_records:
-		processed_records[doc_id] = apply_reciprocal_rank_policy(processed_records[doc_id])
+		processed_records[doc_id] = apply_ranking_policy(processed_records[doc_id])
 
 	scores_heap = list(processed_records.values())
 	heapq.heapify(scores_heap)
-	result = [heapq.heappop(scores_heap) for i in range(len(scores_heap))]
+	result = [heapq.heappop(scores_heap) for _ in range(len(scores_heap))]
 	return result
 
 

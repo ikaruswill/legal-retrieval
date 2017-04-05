@@ -20,6 +20,8 @@ unigram_start_offset = 0
 bigram_start_offset = 0
 trigram_start_offset = 0
 
+POST_PROCESSOR_DIR = './query_exp_results.txt'
+
 
 def get_posting(index, start_offset, postings_offsets):
 	byte_offset = start_offset + postings_offsets[index]
@@ -118,7 +120,7 @@ def handle_query(query, query_expansion=True):
 		print('query expansion result size: ', ', '.join(map(lambda x: str(len(x)), query_expansion_results[-1])))
 	# TODO do reciprocal with results and query_expansion_results
 
-	f = 'query_exp_results'
+	f = POST_PROCESSOR_DIR
 	with open(f, 'wb') as f:
 		utility.save_object(query_expansion_results, f)
 
