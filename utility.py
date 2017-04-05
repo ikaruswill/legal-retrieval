@@ -39,6 +39,9 @@ def save_object(obj, f):
 def load_object(f):
 	return pickle.load(f)
 
+def str2bool(bool_str):
+	return bool_str.lower() in ("yes", "true", "t", "1")
+
 # Whitelist fields for better performance in both space and time complexity
 def parse_child(child):
 	if child.tag == 'str':

@@ -5,9 +5,6 @@ import utility
 import math
 import pickle
 
-def str2bool(bool_str):
-	return bool_str.lower() in ("yes", "true", "t", "1")
-
 def load_xml_data(dir_doc):
 	docs = []
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
