@@ -72,3 +72,19 @@ def extract_doc(file_path):
 			doc[key] = parse_child(child)
 
 	return doc
+
+
+class ScoreDocIDPair(object):
+	def __init__(self, score, doc_id):
+		self.score = score
+		self.doc_id = doc_id
+
+	def __lt__(self, other):
+		return int(self.doc_id) < int(other.doc_id) if self.score == other.score else self.score < other.score
+
+	def __repr__(self):
+		return '%6s : %.10f' % (self.doc_id, self.score)
+
+	def __str__(self):
+		return '%6s : %.10f' % (self.doc_id, self.score)
+

@@ -1,6 +1,7 @@
 import getopt
 import sys
 import utility
+from utility import ScoreDocIDPair
 import math
 import heapq
 import os
@@ -19,19 +20,6 @@ unigram_start_offset = 0
 bigram_start_offset = 0
 trigram_start_offset = 0
 
-class ScoreDocIDPair(object):
-	def __init__(self, score, doc_id):
-		self.score = score
-		self.doc_id = doc_id
-
-	def __lt__(self, other):
-		return int(self.doc_id) < int(other.doc_id) if self.score == other.score else self.score < other.score
-
-	def __repr__(self):
-		return '%6s : %.10f' % (self.doc_id, self.score)
-
-	def __str__(self):
-		return '%6s : %.10f' % (self.doc_id, self.score)
 
 def get_posting(index, start_offset, postings_offsets):
 	byte_offset = start_offset + postings_offsets[index]
@@ -129,6 +117,11 @@ def handle_query(query, query_expansion=True):
 		query_expansion_results.append(query_with_doc(doc_id))
 		print('query expansion result size: ', ', '.join(map(lambda x: str(len(x)), query_expansion_results[-1])))
 	# TODO do reciprocal with results and query_expansion_results
+
+	f = 'query_exp_results'
+	with open(f, 'wb') as f:
+		utility.save_object(query_expansion_results, f)
+
 
 def main():
 	global unigram_dict, bigram_dict, trigram_dict
