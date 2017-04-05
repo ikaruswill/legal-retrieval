@@ -97,8 +97,11 @@ def get_all_doc_ids(results):
 	return doc_ids
 
 def handle_query(query, query_expansion=True):
-	phrases = list(map(strip_and_preprocess, query.split('AND')))
-	print(phrases)
+	if query_expansion:
+		query = query.split('AND')
+	else:
+		query = [query]
+	phrases = list(map(strip_and_preprocess, query))
 	results = []
 	for phrase in phrases:
 		if len(phrase) >= 3: #three words original query or documents with more than 3 words
@@ -117,10 +120,14 @@ def handle_query(query, query_expansion=True):
 	if not query_expansion:
 		return results
 
+	print("Init Query: ", results)
+	print('result size: ', ', '.join(map(lambda x: str(len(x)), results)))
+
 	query_expansion_results = []
 	for doc_id in get_all_doc_ids(results):
 		print('query expansion with doc', doc_id)
 		query_expansion_results.append(query_with_doc(doc_id))
+		print('query expansion result size: ', ', '.join(map(lambda x: str(len(x)), query_expansion_results[-1])))
 	# TODO do reciprocal with results and query_expansion_results
 
 def main():
