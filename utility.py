@@ -9,7 +9,7 @@ import xml.etree.ElementTree
 import pickle
 
 def tokenize(string):
-		return word_tokenize(string.lower())
+	return word_tokenize(string.lower())
 
 def remove_punctuations(tokens):
 	punctuation_set = set(punctuation)
