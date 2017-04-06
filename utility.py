@@ -28,6 +28,8 @@ def stem(tokens):
 	return [stemmer.stem(token) for token in tokens]
 
 def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
+	if n == 1:
+		return tokens
 	return [' '.join(ngram) for ngram in ngrams(tokens, n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
 
 def count_tokens(tokens):
