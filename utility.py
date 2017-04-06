@@ -7,9 +7,10 @@ from nltk.util import ngrams
 from collections import Counter
 import xml.etree.ElementTree
 import pickle
+import re
 
 def tokenize(string):
-		return word_tokenize(string.lower())
+	return word_tokenize(string.lower())
 
 def remove_punctuations(tokens):
 	punctuation_set = set(punctuation)
@@ -38,6 +39,10 @@ def save_object(obj, f):
 
 def load_object(f):
 	return pickle.load(f)
+
+def remove_css_text(string):
+	return re.sub('[\.|#|@]?[\w\.\-\t ]+{.+}', '', string, flags=re.DOTALL)
+
 
 # Whitelist fields for better performance in both space and time complexity
 def parse_child(child):

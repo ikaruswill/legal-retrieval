@@ -1,5 +1,7 @@
 # Ignore data, query and result files
 intelllex*/
+diff/
+doc_with_css/
 queries/
 *.txt
 
