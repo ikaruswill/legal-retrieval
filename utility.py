@@ -29,6 +29,8 @@ def stem(tokens):
 	return [stemmer.stem(token) for token in tokens]
 
 def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
+	if n == 1:
+		return tokens
 	return [' '.join(ngram) for ngram in ngrams(tokens, n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
 
 def count_tokens(tokens):
@@ -43,6 +45,8 @@ def load_object(f):
 def remove_css_text(string):
 	return re.sub('[\.|#|@]?[\w\.\-\t ]+{.+}', '', string, flags=re.DOTALL)
 
+def str2bool(bool_str):
+	return bool_str.lower() in ("yes", "true", "t", "1")
 
 # Whitelist fields for better performance in both space and time complexity
 def parse_child(child):
@@ -59,7 +63,7 @@ def parse_child(child):
 	elif child.tag == 'arr':
 		arr = []
 		for grandchild in child:
-			arr.append(parse_child)
+			arr.append(parse_child(grandchild))
 		return arr
 	else:
 		exit('Unsupported tag: ', child.tag)

@@ -4,9 +4,7 @@ import os
 import utility
 import math
 import pickle
-
-def str2bool(bool_str):
-	return bool_str.lower() in ("yes", "true", "t", "1")
+import logging
 
 def load_xml_data(dir_doc):
 	docs = []
@@ -101,52 +99,49 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	logging.info('Creating new files')
 	# Append binary mode for repeated pickling and creation of new file
 	dict_file = open(dict_path, 'ab+')
 	lengths_file = open(lengths_path, 'ab+')
 	postings_file = open(postings_path, 'ab+')
 
+	logging.info('Parsing XML')
 	content_key = 'content'
-	# ngram_keys = ['unigram', 'bigram', 'trigram']
 	docs = load_xml_data(dir_doc)
+	logging.info('Preprocessing documents')
 	preprocess(docs, content_key)
-	copy_key(docs, content_key, 'unigram')
-	iter_key_call(docs, 'unigram', utility.count_tokens)
-	lengths = build_and_populate_lengths(docs, 'unigram')
-	dictionary = build_dictionary(docs, 'unigram')
-	postings = build_and_populate_postings(docs, 'unigram', dictionary)
-	save_postings(postings, postings_file)
-	utility.save_object(dictionary, dict_file)
-	utility.save_object(lengths, lengths_file)
 
-	delete_key(docs, 'unigram')
-	copy_key(docs, content_key, 'bigram')
-	iter_key_call(docs, 'bigram', utility.generate_ngrams, n=2)
-	iter_key_call(docs, 'bigram', utility.count_tokens)
-	lengths = build_and_populate_lengths(docs, 'bigram')
-	dictionary = build_dictionary(docs, 'bigram')
-	postings = build_and_populate_postings(docs, 'bigram', dictionary)
-	save_postings(postings, postings_file)
-	utility.save_object(dictionary, dict_file)
-	utility.save_object(lengths, lengths_file)
+	keys = ['unigram', 'bigram', 'trigram']
 
-	delete_key(docs, 'bigram')
-	copy_key(docs, content_key, 'trigram')
-	delete_key(docs, content_key)
-	iter_key_call(docs, 'trigram', utility.generate_ngrams, n=3)
-	iter_key_call(docs, 'trigram', utility.count_tokens)
-	lengths = build_and_populate_lengths(docs, 'trigram')
-	dictionary = build_dictionary(docs, 'trigram')
-	postings = build_and_populate_postings(docs, 'trigram', dictionary)
-	save_postings(postings, postings_file)
-	utility.save_object(dictionary, dict_file)
-	utility.save_object(lengths, lengths_file)
+	for i, key in enumerate(keys):
+		ngram = i + 1
+		logging.info('[%s] Copying key', key)
+		copy_key(docs, content_key, key)
+		logging.info('[%s] Generating ngrams', key)
+		iter_key_call(docs, key, utility.generate_ngrams, n=ngram)
+		logging.info('[%s] Counting tokens', key)
+		iter_key_call(docs, key, utility.count_tokens)
+		logging.info('[%s] Building & populating lengths', key)
+		lengths = build_and_populate_lengths(docs, key)
+		logging.info('[%s] Building dictionary', key)
+		dictionary = build_dictionary(docs, key)
+		logging.info('[%s] Building & populating postings', key)
+		postings = build_and_populate_postings(docs, key, dictionary)
+		logging.info('[%s] Saving postings', key)
+		save_postings(postings, postings_file)
+		logging.info('[%s] Saving dictionary and lengths', key)
+		utility.save_object(dictionary, dict_file)
+		utility.save_object(lengths, lengths_file)
+		delete_key(docs, key)
 
+	logging.info('Closing files')
 	dict_file.close()
 	lengths_file.close()
 	postings_file.close()
+	logging.info('Indexing complete')
 
 if __name__ == '__main__':
+	logging.basicConfig(level=logging.INFO, datefmt='%d/%m/%y %H:%M:%S', format='%(asctime)s %(message)s')
 	dir_doc = dict_path = postings_path = lengths_path = None
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:l:')
@@ -168,7 +163,9 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
+	logging.info('Begin indexing')
 	try:
+		logging.info('Deleting existing files')
 		os.remove(dict_path)
 		os.remove(postings_path)
 		os.remove(lengths_path)
