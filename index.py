@@ -102,8 +102,6 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
-	pool = multiprocessing.Pool()
-
 	logging.info('Creating new files')
 	# Append binary mode for repeated pickling and creation of new file
 	dict_file = open(dict_path, 'ab+')
@@ -114,7 +112,8 @@ def main():
 	content_key = 'content'
 	docs = load_xml_data(dir_doc)
 	logging.info('Preprocessing documents')
-	docs = pool.starmap(preprocess, zip(docs, itertools.repeat(content_key)))
+	with multiprocessing.Pool(3) as pool:
+		docs = pool.starmap(preprocess, zip(docs, itertools.repeat(content_key)))
 
 	keys = ['unigram', 'bigram', 'trigram']
 
