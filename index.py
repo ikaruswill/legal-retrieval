@@ -5,6 +5,8 @@ import utility
 import math
 import pickle
 import logging
+import multiprocessing
+import itertools
 
 def load_xml_data(dir_doc):
 	docs = []
@@ -16,11 +18,12 @@ def load_xml_data(dir_doc):
 
 	return docs
 
-def preprocess(docs, key):
-	iter_key_call(docs, key, utility.tokenize)
-	iter_key_call(docs, key, utility.remove_punctuations)
-	iter_key_call(docs, key, utility.remove_stopwords)
-	iter_key_call(docs, key, utility.stem)
+def preprocess(doc, key):
+	doc[key] = utility.tokenize(doc[key])
+	doc[key] = utility.remove_punctuations(doc[key])
+	doc[key] = utility.remove_stopwords(doc[key])
+	doc[key] = utility.stem(doc[key])
+	return doc
 
 def build_dictionary(docs, key):
 	terms = set()
@@ -99,6 +102,8 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	pool = multiprocessing.Pool()
+
 	logging.info('Creating new files')
 	# Append binary mode for repeated pickling and creation of new file
 	dict_file = open(dict_path, 'ab+')
@@ -109,7 +114,7 @@ def main():
 	content_key = 'content'
 	docs = load_xml_data(dir_doc)
 	logging.info('Preprocessing documents')
-	preprocess(docs, content_key)
+	docs = pool.starmap(preprocess, zip(docs, itertools.repeat(content_key)))
 
 	keys = ['unigram', 'bigram', 'trigram']
 
