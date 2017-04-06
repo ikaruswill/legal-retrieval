@@ -112,7 +112,7 @@ def main():
 	content_key = 'content'
 	docs = load_xml_data(dir_doc)
 	logging.info('Preprocessing documents')
-	with multiprocessing.Pool(3) as pool:
+	with multiprocessing.Pool() as pool:
 		docs = pool.starmap(preprocess, zip(docs, itertools.repeat(content_key)))
 
 	keys = ['unigram', 'bigram', 'trigram']
