@@ -54,7 +54,7 @@ def parse_child(child):
 	elif child.tag == 'arr':
 		arr = []
 		for grandchild in child:
-			arr.append(parse_child)
+			arr.append(parse_child(grandchild))
 		return arr
 	else:
 		exit('Unsupported tag: ', child.tag)
