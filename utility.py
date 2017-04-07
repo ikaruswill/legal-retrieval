@@ -8,15 +8,16 @@ from collections import Counter
 import xml.etree.ElementTree
 import pickle
 
+stopword_set = set(stopwords.words('english'))
+punctuation_set = set(punctuation)
+
 def tokenize(string):
 	return word_tokenize(string.lower())
 
 def remove_punctuations(tokens):
-	punctuation_set = set(punctuation)
 	return [token for token in tokens if token not in punctuation_set]
 
 def remove_stopwords(tokens):
-	stopword_set = set(stopwords.words('english'))
 	return [token for token in tokens if token not in stopword_set]
 
 def lemmatize(tokens):
