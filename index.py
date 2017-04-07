@@ -6,6 +6,7 @@ import math
 import pickle
 import logging
 import collections
+from time import time
 
 max_block_size = 20 # Number of documents
 script_path = os.path.dirname(os.path.realpath(__file__))
@@ -54,23 +55,39 @@ def main():
 			block_lengths = {}
 			while block_size < max_block_size and len(filename_queue):
 				filename = filename_queue.popleft()
+				logging.info('Extracting document')
+				t = time()
 				if not filename.endswith('xml'):
 					break
 				file_path = os.path.join(dirpath, filename)
 				doc = utility.extract_doc(file_path)
+				print(time() - t)
 				logging.info('Tokenizing document')
+				t = time()
 				doc[content_key] = utility.tokenize(doc[content_key])
+				print(time() - t)
 				logging.info('Removing punctuations')
+				t = time()
 				doc[content_key] = utility.remove_punctuations(doc[content_key])
+				print(time() - t)
 				logging.info('Removing stopwords')
+				t = time()
 				doc[content_key] = utility.remove_stopwords(doc[content_key])
+				print(time() - t)
 				logging.info('Stemming tokens')
+				t = time()
 				doc[content_key] = utility.stem(doc[content_key])
+				print(time() - t)
 				logging.info('Generating ngrams')
+				t = time()
 				doc[content_key] = utility.generate_ngrams(doc[content_key], 1)
+				print(time() - t)
 				logging.info('Counting terms')
+				t = time()
 				doc[content_key] = utility.count_tokens(doc[content_key])
+				print(time() - t)
 				logging.info('Processing document')
+				t = time()
 				for term, freq in doc[content_key].items():
 					if term not in block_index:
 						block_index[term] = []
@@ -78,7 +95,7 @@ def main():
 					block_lengths[doc['document_id']] = get_length(doc[content_key])
 				block_size += 1
 				processed_count += 1
-
+				print(time() - t)
 				if processed_count % log_every_n == 0:
 					print('- Processed', processed_count)
 
