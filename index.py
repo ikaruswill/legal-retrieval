@@ -8,7 +8,7 @@ import logging
 import collections
 import multiprocessing
 import heapq
-from time import time
+import shutil
 
 block_size = 20 # Number of documents
 block_ext = '.blk'
@@ -35,14 +35,14 @@ def save_postings(postings, f):
 	for serialized_posting in serialized_postings:
 		f.write(serialized_posting)
 
-def get_folder_path(tag):
+def get_block_folder_path(tag=''):
 	script_path = os.path.dirname(os.path.realpath(__file__))
 	temp_folder = 'tmp/'
-	temp_folder += tag if tag.endswith('/') else tag + '/'
+	temp_folder += tag if tag == '' or tag.endswith('/') else tag + '/'
 	return os.path.join(script_path, temp_folder)
 
 def get_block_path(tag, block_number):
-	temp_folder_path = get_folder_path(tag)
+	temp_folder_path = get_block_folder_path(tag)
 	if not os.path.exists(temp_folder_path):
 		os.makedirs(temp_folder_path)
 	return os.path.join(temp_folder_path, str(block_number) + block_ext)
@@ -114,7 +114,7 @@ def main():
 
 		# Merge step
 		logging.info('Merging block indexes')
-		for dirpath, dirnames, filenames in os.walk(get_folder_path('index')):
+		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('index')):
 			# Open all blocks concurrently in block number order
 			filenames = sorted(filenames)
 			index_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
@@ -136,13 +136,13 @@ def main():
 			utility.save_object((target_term, doc_freq,), dict_file)
 			utility.save_object(target_postings_list, postings_file)
 			
-			# Cleanup
+			# Cleanup index file handles
 			for index_file_handle in index_file_handles:
 				index_file_handle.close()
 
 		logging.info('Merging block lengths')
 		lengths = {}
-		for dirpath, dirnames, filenames in os.walk(get_folder_path('lengths')):
+		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('lengths')):
 			filenames = sorted(filenames)
 			for filename in filenames:
 				if filename.endswith(block_ext):
@@ -150,9 +150,14 @@ def main():
 						lengths.update(utility.load_object(f))
 			utility.save_object(lengths, lengths_file)
 
+	logging.info('Cleaning up blocks')
+	# Cleanup block files
+	shutil.rmtree(get_block_folder_path())
+
 	dict_file.close()
 	lengths_file.close()
 	postings_file.close()
+	logging.info('Indexing complete')
 
 if __name__ == '__main__':
 	logging.basicConfig(level=logging.INFO, datefmt='%d/%m/%y %H:%M:%S', format='%(asctime)s %(message)s')
