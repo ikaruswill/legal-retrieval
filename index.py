@@ -84,6 +84,7 @@ def process_block(file_paths, block_number):
 			block_index[term].append((doc['document_id'], freq))
 			block_lengths[doc['document_id']] = get_length(doc[content_key])
 
+	logging.info('Saving block #%s', block_number)
 	# Save block
 	block_index_path = get_block_path('index', block_number)
 	block_lengths_path = get_block_path('lengths', block_number)
@@ -109,14 +110,17 @@ def main():
 		filepath_blocks = deque_chunks(filepaths, max_block_size)
 		block_count = len(filepath_blocks)
 
+		logging.info('Begin Single Pass In-Memory Indexing')
 		with multiprocessing.Pool() as pool:
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
+		logging.info('Merging block indexes')
 		for dirpath, dirnames, filenames in os.walk(get_folder_path('index')):
-			# Open all blocks in parallel in block number order
-			term_postings_list_tuples = [utility.load_object(open(os.path.join(dirpath, filename), 'rb')) \
-				for filename in sorted(filenames) if filename.endswith(block_ext)]
+			# Open all blocks concurrently in block number order
+			filenames = sorted(filenames)
+			index_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
+			term_postings_list_tuples = [utility.objects_in(index_file_handle) for index_file_handle in index_file_handles]
 			# Merge blocks
 			sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
@@ -135,6 +139,10 @@ def main():
 			doc_freq = len(target_postings_list)
 			utility.save_object((target_term, doc_freq,), dict_file)
 			utility.save_object(target_postings_list, postings_file)
+			
+			# Cleanup
+			for index_file_handle in index_file_handles:
+				index_file_handle.close()
 
 	dict_file.close()
 	lengths_file.close()
