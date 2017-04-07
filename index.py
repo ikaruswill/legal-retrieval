@@ -35,16 +35,14 @@ def save_postings(postings, f):
 	for serialized_posting in serialized_postings:
 		f.write(serialized_posting)
 
-def save_block_object(obj, tag, block_number):
+def get_path(tag, block_number):
 	script_path = os.path.dirname(os.path.realpath(__file__))
 	temp_folder = 'tmp/'
 	temp_folder += tag if tag.endswith('/') else tag + '/'
 	temp_folder_path = os.path.join(script_path, temp_folder)
 	if not os.path.exists(temp_folder_path):
 		os.makedirs(temp_folder_path)
-	temp_file_path = os.path.join(temp_folder_path, str(block_number))
-	with open(temp_file_path, 'wb') as f:
-		utility.save_object(obj)
+	return os.path.join(temp_folder_path, str(block_number))
 
 def deque_chunks(l, n):
 	chunks = []
@@ -72,7 +70,7 @@ def process_block(file_paths, block_number):
 		logging.debug('Stemming tokens')
 		doc[content_key] = utility.stem(doc[content_key])
 		logging.debug('Generating ngrams')
-		doc[content_key] = utility.generate_ngrams(doc[content_key], 1)
+		doc[content_key] = utility.generate_ngrams(doc[content_key], 1) # Unigram only
 		logging.debug('Counting terms')
 		doc[content_key] = utility.count_tokens(doc[content_key])
 		logging.debug('Processing document')
@@ -83,19 +81,27 @@ def process_block(file_paths, block_number):
 			block_lengths[doc['document_id']] = get_length(doc[content_key])
 
 	# Save block
-	save_block_object(block_index, 'index', block_number)
-	save_block_object(block_lengths, 'lengths', block_number)
+	block_index_path = get_path('index', block_number)
+	block_lengths_path = get_path('lengths', block_number)
+
+	with open(block_index_path, 'wb') as f:
+		for term, postings_list in sorted(block_index.items()): # Each block sorted by term lexicographical order
+			utility.save_object({'term': term, 'postings': postings_list})
+
+	with open(block_lengths_path, 'wb') as f:
+		utility.save_object(block_lengths, f)
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
-		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Sorted by DocID
+		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
 		filepath_blocks = deque_chunks(filepaths, max_block_size)
+		block_count = len(filepath_blocks)
 
 		with multiprocessing.Pool() as pool:
-			pool.starmap(process_block, zip(filepath_blocks, range(len(filepath_blocks))))
+			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
 
