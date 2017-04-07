@@ -144,6 +144,16 @@ def main():
 			for index_file_handle in index_file_handles:
 				index_file_handle.close()
 
+		logging.info('Merging block lengths')
+		lengths = {}
+		for dirpath, dirnames, filenames in os.walk(get_folder_path('lengths')):
+			filenames = sorted(filenames)
+			for filename in filenames:
+				if filename.endswith(block_ext):
+					with(open(os.path.join(dirpath, filename))) as f:
+						lengths.update(utility.load_object(f))
+				utility.save_object(lengths, lengths_file)
+
 	dict_file.close()
 	lengths_file.close()
 	postings_file.close()
