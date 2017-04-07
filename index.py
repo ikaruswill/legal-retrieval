@@ -35,11 +35,14 @@ def save_postings(postings, f):
 	for serialized_posting in serialized_postings:
 		f.write(serialized_posting)
 
-def get_path(tag, block_number):
+def get_folder_path(tag):
 	script_path = os.path.dirname(os.path.realpath(__file__))
 	temp_folder = 'tmp/'
 	temp_folder += tag if tag.endswith('/') else tag + '/'
-	temp_folder_path = os.path.join(script_path, temp_folder)
+	return os.path.join(script_path, temp_folder)
+
+def get_block_path(tag, block_number):
+	temp_folder_path = get_folder_path(tag)
 	if not os.path.exists(temp_folder_path):
 		os.makedirs(temp_folder_path)
 	return os.path.join(temp_folder_path, str(block_number))
@@ -81,8 +84,8 @@ def process_block(file_paths, block_number):
 			block_lengths[doc['document_id']] = get_length(doc[content_key])
 
 	# Save block
-	block_index_path = get_path('index', block_number)
-	block_lengths_path = get_path('lengths', block_number)
+	block_index_path = get_block_path('index', block_number)
+	block_lengths_path = get_block_path('lengths', block_number)
 
 	with open(block_index_path, 'wb') as f:
 		for term, postings_list in sorted(block_index.items()): # Each block sorted by term lexicographical order
