@@ -37,7 +37,9 @@ def count_tokens(tokens):
 	return Counter(tokens)
 
 def save_object(obj, f):
-	pickle.dump(obj, f)
+	s_obj = pickle.dumps(obj)
+	f.write(s_obj)
+	return len(s_obj)
 
 def load_object(f):
 	return pickle.load(f)
