@@ -40,6 +40,9 @@ def save_object(obj, f):
 	pickle.dump(obj, f)
 
 def load_object(f):
+	return pickle.load(f)
+
+def objects_in(f):
 	while True:
 		try:
 			yield pickle.load(f)
