@@ -40,7 +40,10 @@ def save_object(obj, f):
 	pickle.dump(obj, f)
 
 def load_object(f):
-	return pickle.load(f)
+	try:
+		return pickle.load(f)
+	except EOFError:
+		return None
 
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
