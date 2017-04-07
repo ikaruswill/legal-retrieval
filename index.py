@@ -6,10 +6,11 @@ import math
 import pickle
 import logging
 import collections
+import multiprocessing
 from time import time
 
 max_block_size = 20 # Number of documents
-script_path = os.path.dirname(os.path.realpath(__file__))
+
 log_every_n = 10
 content_key = 'content'
 
@@ -34,90 +35,69 @@ def save_postings(postings, f):
 	for serialized_posting in serialized_postings:
 		f.write(serialized_posting)
 
-def prepare_filepath(script_path, block_number, suffix):
+def save_block_object(obj, tag, block_number):
+	script_path = os.path.dirname(os.path.realpath(__file__))
 	temp_folder = 'tmp/'
-	temp_path = os.path.join(script_path, temp_folder)
-	if not os.path.exists(temp_path):
-		os.makedirs(temp_path)
-	return os.path.join(temp_path, '_'.join((str(block_number), suffix)))
+	temp_folder += tag if tag.endswith('/') else tag + '/'
+	temp_folder_path = os.path.join(script_path, temp_folder)
+	if not os.path.exists(temp_folder_path):
+		os.makedirs(temp_folder_path)
+	temp_file_path = os.path.join(temp_folder_path, str(block_number))
+	with open(temp_file_path, 'wb') as f:
+		utility.save_object(obj)
+
+def deque_chunks(l, n):
+	chunks = []
+	"""Yield successive n-sized chunks from l."""
+	for i in range(0, len(l), n):
+		chunks.append(collections.deque(l[i:i + n]))
+	return chunks
+
+def process_block(file_paths, block_number):
+	logging.info('Processing block #%s', block_number)
+	block_index = {}
+	block_lengths = {}
+	while(len(file_paths)):
+		file_path = file_paths.popleft()
+		if not file_path.endswith('.xml'):
+			continue
+		logging.debug('Extracting document')
+		doc = utility.extract_doc(file_path)
+		logging.debug('Tokenizing document')
+		doc[content_key] = utility.tokenize(doc[content_key])
+		logging.debug('Removing punctuations')
+		doc[content_key] = utility.remove_punctuations(doc[content_key])
+		logging.debug('Removing stopwords')
+		doc[content_key] = utility.remove_stopwords(doc[content_key])
+		logging.debug('Stemming tokens')
+		doc[content_key] = utility.stem(doc[content_key])
+		logging.debug('Generating ngrams')
+		doc[content_key] = utility.generate_ngrams(doc[content_key], 1)
+		logging.debug('Counting terms')
+		doc[content_key] = utility.count_tokens(doc[content_key])
+		logging.debug('Processing document')
+		for term, freq in doc[content_key].items():
+			if term not in block_index:
+				block_index[term] = []
+			block_index[term].append((doc['document_id'], freq))
+			block_lengths[doc['document_id']] = get_length(doc[content_key])
+
+	# Save block
+	save_block_object(block_index, 'index', block_number)
+	save_block_object(block_lengths, 'lengths', block_number)
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
-		filename_queue = collections.deque(sorted(filenames)) # Sorted by DocID
-		processed_count = 0
-		iteration_count = 0
-		block_size = 0
-		while len(filename_queue):
-			block_index = {}
-			block_lengths = {}
-			while block_size < max_block_size and len(filename_queue):
-				filename = filename_queue.popleft()
-				logging.info('Extracting document')
-				t = time()
-				if not filename.endswith('xml'):
-					break
-				file_path = os.path.join(dirpath, filename)
-				doc = utility.extract_doc(file_path)
-				print(time() - t)
-				logging.info('Tokenizing document')
-				t = time()
-				doc[content_key] = utility.tokenize(doc[content_key])
-				print(time() - t)
-				logging.info('Removing punctuations')
-				t = time()
-				doc[content_key] = utility.remove_punctuations(doc[content_key])
-				print(time() - t)
-				logging.info('Removing stopwords')
-				t = time()
-				doc[content_key] = utility.remove_stopwords(doc[content_key])
-				print(time() - t)
-				logging.info('Stemming tokens')
-				t = time()
-				doc[content_key] = utility.stem(doc[content_key])
-				print(time() - t)
-				logging.info('Generating ngrams')
-				t = time()
-				doc[content_key] = utility.generate_ngrams(doc[content_key], 1)
-				print(time() - t)
-				logging.info('Counting terms')
-				t = time()
-				doc[content_key] = utility.count_tokens(doc[content_key])
-				print(time() - t)
-				logging.info('Processing document')
-				t = time()
-				for term, freq in doc[content_key].items():
-					if term not in block_index:
-						block_index[term] = []
-					block_index[term].append((doc['document_id'], freq))
-					block_lengths[doc['document_id']] = get_length(doc[content_key])
-				block_size += 1
-				processed_count += 1
-				print(time() - t)
-				if processed_count % log_every_n == 0:
-					print('- Processed', processed_count)
+		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Sorted by DocID
+		filepath_blocks = deque_chunks(filepaths, max_block_size)
 
-			# Save block
-			# NEED TO HANDLE RELATIVE PATHS AND LACK OF TRAILING SLASHES
-			block_index_path = prepare_filepath(script_path, suffix='index', block_number=iteration_count)
-			block_lengths_path = prepare_filepath(script_path, suffix='lengths', block_number=iteration_count)
+		with multiprocessing.Pool() as pool:
+			pool.starmap(process_block, zip(filepath_blocks, range(len(filepath_blocks))))
 
-			block_index_file = open(block_index_path, 'wb')
-			block_lengths_file = open(block_lengths_path, 'wb')
-
-			utility.save_object(block_index, block_index_file)
-			utility.save_object(block_lengths, block_lengths_file)
-
-			block_index_file.close()
-			block_lengths_file.close()
-
-			block_size = 0
-			iteration_count += 1
-			print('--- Iteration Count:', iteration_count)
-
-	# Merge step
+		# Merge step
 
 
 if __name__ == '__main__':
