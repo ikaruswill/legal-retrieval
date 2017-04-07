@@ -100,10 +100,9 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
-	# Append binary mode for repeated pickling and creation of new file 
-	dict_file = open(dict_path, 'ab+')
-	lengths_file = open(lengths_path, 'ab+')
-	postings_file = open(postings_path, 'ab+')
+	dict_file = open(dict_path, 'wb')
+	lengths_file = open(lengths_path, 'wb')
+	postings_file = open(postings_path, 'wb')
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
