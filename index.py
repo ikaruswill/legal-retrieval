@@ -10,8 +10,7 @@ import multiprocessing
 import heapq
 from time import time
 
-max_block_size = 20 # Number of documents
-max_block_size = 1 # Number of documents
+block_size = 20 # Number of documents
 block_ext = '.blk'
 content_key = 'content'
 
@@ -106,7 +105,7 @@ def main():
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
-		filepath_blocks = deque_chunks(filepaths, max_block_size)
+		filepath_blocks = deque_chunks(filepaths, block_size)
 		block_count = len(filepath_blocks)
 
 		logging.info('Begin Single Pass In-Memory Indexing')
