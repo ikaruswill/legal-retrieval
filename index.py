@@ -147,9 +147,9 @@ def main():
 			filenames = sorted(filenames)
 			for filename in filenames:
 				if filename.endswith(block_ext):
-					with(open(os.path.join(dirpath, filename))) as f:
+					with open(os.path.join(dirpath, filename), 'rb') as f:
 						lengths.update(utility.load_object(f))
-				utility.save_object(lengths, lengths_file)
+			utility.save_object(lengths, lengths_file)
 
 	dict_file.close()
 	lengths_file.close()
