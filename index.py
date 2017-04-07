@@ -120,10 +120,8 @@ def main():
 
 		# Merge step
 		logging.info('Merging block indexes')
+		cumulative = 0
 		for ngram_key in ngram_keys:
-			seek_table = [0]
-			cumulative = 0
-			temp_postings_file = open(get_block_path('_'.join(('postings', ngram_key,)), 'temp'), 'wb+')
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
 				# Open all blocks concurrently in block number order
 				filenames = sorted(filenames)
@@ -136,25 +134,17 @@ def main():
 				for term, postings_list in sorted_tuples:
 					if target_term != term:
 						doc_freq = len(target_postings_list)
-						utility.save_object((target_term, doc_freq,), dict_file)
-						cumulative += utility.save_object(target_postings_list, temp_postings_file)
-						seek_table.append(cumulative)
+						utility.save_object((target_term, doc_freq, cumulative), dict_file)
+						cumulative += utility.save_object(target_postings_list, postings_file)
 						target_term = term
 						target_postings_list = postings_list
 					else:
 						target_postings_list.extend(postings_list)
 				doc_freq = len(target_postings_list)
-				utility.save_object((target_term, doc_freq,), dict_file)
-				cumulative += utility.save_object(target_postings_list, temp_postings_file)
-				seek_table.append(cumulative)
-
-				# Save seek table and transfer postings from temp
-				utility.save_object(seek_table, postings_file)
-				temp_postings_file.seek(0)
-				postings_file.write(temp_postings_file.read())
+				utility.save_object((target_term, doc_freq, cumulative), dict_file)
+				cumulative += utility.save_object(target_postings_list, postings_file)
 				
 				# Cleanup index file handles
-				temp_postings_file.close()
 				for block_file_handle in block_file_handles:
 					block_file_handle.close()
 
