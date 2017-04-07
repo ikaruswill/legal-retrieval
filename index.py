@@ -124,9 +124,7 @@ def main():
 			sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
 			target_term, target_postings_list = next(sorted_tuples)
-			print(target_term, target_postings_list)
 			for term, postings_list in sorted_tuples:
-				print(term, postings_list)
 				if target_term != term:
 					doc_freq = len(target_postings_list)
 					utility.save_object((target_term, doc_freq,), dict_file)
