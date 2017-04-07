@@ -13,6 +13,7 @@ import shutil
 block_size = 20 # Number of documents
 block_ext = '.blk'
 content_key = 'content'
+ngram_keys = ['unigram', 'bigram', 'trigram']
 
 def get_length(counted_tokens):
 	sum_squares = 0
@@ -56,44 +57,49 @@ def deque_chunks(l, n):
 
 def process_block(file_paths, block_number):
 	logging.info('Processing block #%s', block_number)
-	block_index = {}
-	block_lengths = {}
+	block_index = {key:{} for key in ngram_keys}
+	block_lengths = {key:{} for key in ngram_keys}
 	while(len(file_paths)):
 		file_path = file_paths.popleft()
 		if not file_path.endswith('.xml'):
 			continue
-		logging.debug('Extracting document')
+		logging.debug('[%s] Extracting document', block_number)
 		doc = utility.extract_doc(file_path)
-		logging.debug('Tokenizing document')
+		logging.debug('[%s] Tokenizing document', block_number)
 		doc[content_key] = utility.tokenize(doc[content_key])
-		logging.debug('Removing punctuations')
+		logging.debug('[%s] Removing punctuations', block_number)
 		doc[content_key] = utility.remove_punctuations(doc[content_key])
-		logging.debug('Removing stopwords')
+		logging.debug('[%s] Removing stopwords', block_number)
 		doc[content_key] = utility.remove_stopwords(doc[content_key])
-		logging.debug('Stemming tokens')
+		logging.debug('[%s] Stemming tokens', block_number)
 		doc[content_key] = utility.stem(doc[content_key])
-		logging.debug('Generating ngrams')
-		doc[content_key] = utility.generate_ngrams(doc[content_key], 1) # Unigram only
-		logging.debug('Counting terms')
-		doc[content_key] = utility.count_tokens(doc[content_key])
-		logging.debug('Processing document')
-		for term, freq in doc[content_key].items():
-			if term not in block_index:
-				block_index[term] = []
-			block_index[term].append((doc['document_id'], freq))
-			block_lengths[doc['document_id']] = get_length(doc[content_key])
+		for i, ngram_key in enumerate(ngram_keys):
+			n = i + 1
+			logging.debug('[%s] Generating %ss', block_number, ngram_key)
+			doc[ngram_key] = utility.generate_ngrams(doc[content_key], n)
+			logging.debug('[%s] Counting %ss', block_number, ngram_key)
+			doc[ngram_key] = utility.count_tokens(doc[ngram_key])
+			logging.debug('[%s] Processing %s postings and lengths', block_number, ngram_key)
+			for term, freq in doc[ngram_key].items():
+				if term not in block_index[ngram_key]:
+					block_index[ngram_key][term] = []
+				block_index[ngram_key][term].append((doc['document_id'], freq))
+				block_lengths[ngram_key][doc['document_id']] = get_length(doc[ngram_key])
 
 	logging.info('Saving block #%s', block_number)
-	# Save block
-	block_index_path = get_block_path('index', block_number)
-	block_lengths_path = get_block_path('lengths', block_number)
 
-	with open(block_index_path, 'wb') as f:
-		for term, postings_list in sorted(block_index.items()): # Each block sorted by term lexicographical order
-			utility.save_object((term, postings_list,), f)
+	for ngram_key in ngram_keys:
+		logging.debug('[%s] Saving %s block', block_number, ngram_key)
+		# Save block
+		block_index_path = get_block_path('_'.join(('index', ngram_key,)), block_number)
+		block_lengths_path = get_block_path('_'.join(('lengths', ngram_key,)), block_number)
 
-	with open(block_lengths_path, 'wb') as f:
-		utility.save_object(block_lengths, f)
+		with open(block_index_path, 'wb') as f:
+			for term, postings_list in sorted(block_index[ngram_key].items()): # Each block sorted by term lexicographical order
+				utility.save_object((term, postings_list,), f)
+
+		with open(block_lengths_path, 'wb') as f:
+			utility.save_object(block_lengths[ngram_key], f)
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
@@ -114,41 +120,53 @@ def main():
 
 		# Merge step
 		logging.info('Merging block indexes')
-		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('index')):
-			# Open all blocks concurrently in block number order
-			filenames = sorted(filenames)
-			index_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
-			term_postings_list_tuples = [utility.objects_in(index_file_handle) for index_file_handle in index_file_handles]
-			# Merge blocks
-			sorted_tuples = heapq.merge(*term_postings_list_tuples)
+		for ngram_key in ngram_keys:
+			seek_table = [0]
+			cumulative = 0
+			temp_postings_file = open(get_block_path('_'.join(('postings', ngram_key,)), 'temp'), 'wb+')
+			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
+				# Open all blocks concurrently in block number order
+				filenames = sorted(filenames)
+				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
+				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
+				# Merge blocks
+				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-			target_term, target_postings_list = next(sorted_tuples)
-			for term, postings_list in sorted_tuples:
-				if target_term != term:
-					doc_freq = len(target_postings_list)
-					utility.save_object((target_term, doc_freq,), dict_file)
-					utility.save_object(target_postings_list, postings_file)
-					target_term = term
-					target_postings_list = postings_list
-				else:
-					target_postings_list.extend(postings_list)
-			doc_freq = len(target_postings_list)
-			utility.save_object((target_term, doc_freq,), dict_file)
-			utility.save_object(target_postings_list, postings_file)
-			
-			# Cleanup index file handles
-			for index_file_handle in index_file_handles:
-				index_file_handle.close()
+				target_term, target_postings_list = next(sorted_tuples)
+				for term, postings_list in sorted_tuples:
+					if target_term != term:
+						doc_freq = len(target_postings_list)
+						utility.save_object((target_term, doc_freq,), dict_file)
+						cumulative += utility.save_object(target_postings_list, temp_postings_file)
+						seek_table.append(cumulative)
+						target_term = term
+						target_postings_list = postings_list
+					else:
+						target_postings_list.extend(postings_list)
+				doc_freq = len(target_postings_list)
+				utility.save_object((target_term, doc_freq,), dict_file)
+				cumulative += utility.save_object(target_postings_list, temp_postings_file)
+				seek_table.append(cumulative)
 
-		logging.info('Merging block lengths')
-		lengths = {}
-		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('lengths')):
-			filenames = sorted(filenames)
-			for filename in filenames:
-				if filename.endswith(block_ext):
-					with open(os.path.join(dirpath, filename), 'rb') as f:
-						lengths.update(utility.load_object(f))
-			utility.save_object(lengths, lengths_file)
+				# Save seek table and transfer postings from temp
+				utility.save_object(seek_table, postings_file)
+				temp_postings_file.seek(0)
+				postings_file.write(temp_postings_file.read())
+				
+				# Cleanup index file handles
+				temp_postings_file.close()
+				for block_file_handle in block_file_handles:
+					block_file_handle.close()
+
+			logging.info('Merging block lengths')
+			lengths = {}
+			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
+				filenames = sorted(filenames)
+				for filename in filenames:
+					if filename.endswith(block_ext):
+						with open(os.path.join(dirpath, filename), 'rb') as f:
+							lengths.update(utility.load_object(f))
+				utility.save_object(lengths, lengths_file)
 
 	logging.info('Cleaning up blocks')
 	# Cleanup block files
