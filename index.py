@@ -7,9 +7,12 @@ import pickle
 import logging
 import collections
 import multiprocessing
+import heapq
 from time import time
 
 max_block_size = 20 # Number of documents
+max_block_size = 1 # Number of documents
+block_ext = '.blk'
 content_key = 'content'
 
 def get_length(counted_tokens):
@@ -110,41 +113,28 @@ def main():
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
-		row_index = {}
 		for dirpath, dirnames, filenames in os.walk(get_folder_path('index')):
 			# Open all blocks in parallel in block number order
-			block_index_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in sorted(filenames) if filename.endswith(block_ext)]
+			term_postings_list_tuples = [utility.load_object(open(os.path.join(dirpath, filename), 'rb')) \
+				for filename in sorted(filenames) if filename.endswith(block_ext)]
+			# Merge blocks
+			sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-			with multiprocessing.Pool() as pool:
-				while True:
-					# term_postings_list_tuples = pool.map(utility.load_object, block_index_handles)
-					term_postings_list_tuples = [utility.load_object(f) for f in block_index_handles ]
-					# Clean keys to be marked for saving
-					clean = set(row_index.keys())
-					dirty = set()
-					# Process loaded block entries
-					for term, postings_list in term_postings_list_tuples:
-						if term == None:
-							continue
-						dirty.add(term)
-						if term not in row_index:
-							row_index[term] = postings_list
-						else:
-							row_index[term].extend(postings_list)
-					clean.difference_update(dirty)
-					# Save clean keys & remove from row index
-					# Since blocks are indexes in their own right, 
-					# smallest clean terms are the smallest terms lexicographically, 
-					# and will not be modified further by later entries
-					for term in sorted(clean):
-						doc_freq = len(row_index[term])
-						utility.save_object((term, doc_freq,), dict_file)
-						utility.save_object(row_index[term], postings_file)
-						del row_index[term]
-
-					# Terminate if there are no modifications
-					if not len(dirty):
-						break
+			target_term, target_postings_list = next(sorted_tuples)
+			print(target_term, target_postings_list)
+			for term, postings_list in sorted_tuples:
+				print(term, postings_list)
+				if target_term != term:
+					doc_freq = len(target_postings_list)
+					utility.save_object((target_term, doc_freq,), dict_file)
+					utility.save_object(target_postings_list, postings_file)
+					target_term = term
+					target_postings_list = postings_list
+				else:
+					target_postings_list.extend(postings_list)
+			doc_freq = len(target_postings_list)
+			utility.save_object((target_term, doc_freq,), dict_file)
+			utility.save_object(target_postings_list, postings_file)
 
 	dict_file.close()
 	lengths_file.close()
