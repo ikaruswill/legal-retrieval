@@ -10,6 +10,8 @@ import pickle
 
 stopword_set = set(stopwords.words('english'))
 punctuation_set = set(punctuation)
+wnl = WordNetLemmatizer()
+stemmer = PorterStemmer()
 
 def tokenize(string):
 	return word_tokenize(string.lower())
@@ -21,11 +23,9 @@ def remove_stopwords(tokens):
 	return [token for token in tokens if token not in stopword_set]
 
 def lemmatize(tokens):
-	wnl = WordNetLemmatizer()
 	return [wnl.lemmatize(token) for token in tokens]
 
 def stem(tokens):
-	stemmer = PorterStemmer()
 	return [stemmer.stem(token) for token in tokens]
 
 def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
