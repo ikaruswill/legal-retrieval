@@ -89,7 +89,7 @@ def process_block(file_paths, block_number):
 
 	with open(block_index_path, 'wb') as f:
 		for term, postings_list in sorted(block_index.items()): # Each block sorted by term lexicographical order
-			utility.save_object({'term': term, 'postings': postings_list}, f)
+			utility.save_object((term, postings_list,), f)
 
 	with open(block_lengths_path, 'wb') as f:
 		utility.save_object(block_lengths, f)
