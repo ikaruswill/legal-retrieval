@@ -10,8 +10,6 @@ import multiprocessing
 from time import time
 
 max_block_size = 20 # Number of documents
-
-log_every_n = 10
 content_key = 'content'
 
 def get_length(counted_tokens):
@@ -45,7 +43,7 @@ def get_block_path(tag, block_number):
 	temp_folder_path = get_folder_path(tag)
 	if not os.path.exists(temp_folder_path):
 		os.makedirs(temp_folder_path)
-	return os.path.join(temp_folder_path, str(block_number))
+	return os.path.join(temp_folder_path, str(block_number) + block_ext)
 
 def deque_chunks(l, n):
 	chunks = []
@@ -98,6 +96,11 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	# Append binary mode for repeated pickling and creation of new file 
+	dict_file = open(dict_path, 'ab+')
+	lengths_file = open(lengths_path, 'ab+')
+	postings_file = open(postings_path, 'ab+')
+
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
 		filepath_blocks = deque_chunks(filepaths, max_block_size)
@@ -107,7 +110,45 @@ def main():
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
+		row_index = {}
+		for dirpath, dirnames, filenames in os.walk(get_folder_path('index')):
+			# Open all blocks in parallel in block number order
+			block_index_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in sorted(filenames) if filename.endswith(block_ext)]
 
+			with multiprocessing.Pool() as pool:
+				while True:
+					# term_postings_list_tuples = pool.map(utility.load_object, block_index_handles)
+					term_postings_list_tuples = [utility.load_object(f) for f in block_index_handles ]
+					# Clean keys to be marked for saving
+					clean = set(row_index.keys())
+					dirty = set()
+					# Process loaded block entries
+					for term, postings_list in term_postings_list_tuples:
+						if term == None:
+							continue
+						dirty.add(term)
+						if term not in row_index:
+							row_index[term] = postings_list
+						else:
+							row_index[term].extend(postings_list)
+					clean.difference_update(dirty)
+					# Save clean keys & remove from row index
+					# Since blocks are indexes in their own right, 
+					# smallest clean terms are the smallest terms lexicographically, 
+					# and will not be modified further by later entries
+					for term in sorted(clean):
+						doc_freq = len(row_index[term])
+						utility.save_object((term, doc_freq,), dict_file)
+						utility.save_object(row_index[term], postings_file)
+						del row_index[term]
+
+					# Terminate if there are no modifications
+					if not len(dirty):
+						break
+
+	dict_file.close()
+	lengths_file.close()
+	postings_file.close()
 
 if __name__ == '__main__':
 	logging.basicConfig(level=logging.INFO, datefmt='%d/%m/%y %H:%M:%S', format='%(asctime)s %(message)s')

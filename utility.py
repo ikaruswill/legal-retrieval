@@ -43,7 +43,7 @@ def load_object(f):
 	try:
 		return pickle.load(f)
 	except EOFError:
-		return None
+		return (None, None,)
 
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
