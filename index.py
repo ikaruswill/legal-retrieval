@@ -70,6 +70,8 @@ def process_block(file_paths, block_number):
 			continue
 		logging.debug('[%s,%s] Extracting document', block_number, i)
 		doc = utility.extract_doc(file_path)
+		logging.debug('[%s,%s] Removing css text', block_number, i)
+		doc[content_key] = utility.remove_css_text(doc[content_key])
 		logging.debug('[%s,%s] Tokenizing document', block_number, i)
 		doc[content_key] = utility.tokenize(doc[content_key])
 		logging.debug('[%s,%s] Removing punctuations', block_number, i)
@@ -154,7 +156,7 @@ def main():
 				doc_freq = len(target_postings_list)
 				utility.save_object((target_term, doc_freq, cumulative), dict_file)
 				cumulative += utility.save_object(target_postings_list, postings_file)
-				
+
 				# Cleanup index file handles
 				for block_file_handle in block_file_handles:
 					block_file_handle.close()
