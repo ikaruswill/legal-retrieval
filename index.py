@@ -59,32 +59,34 @@ def process_block(file_paths, block_number):
 	logging.info('Processing block #%s', block_number)
 	block_index = {key:{} for key in ngram_keys}
 	block_lengths = {key:{} for key in ngram_keys}
+	i = 0
 	while(len(file_paths)):
 		file_path = file_paths.popleft()
 		if not file_path.endswith('.xml'):
 			continue
-		logging.debug('[%s] Extracting document', block_number)
+		logging.debug('[%s,%s] Extracting document', block_number, i)
 		doc = utility.extract_doc(file_path)
-		logging.debug('[%s] Tokenizing document', block_number)
+		logging.debug('[%s,%s] Tokenizing document', block_number, i)
 		doc[content_key] = utility.tokenize(doc[content_key])
-		logging.debug('[%s] Removing punctuations', block_number)
+		logging.debug('[%s,%s] Removing punctuations', block_number, i)
 		doc[content_key] = utility.remove_punctuations(doc[content_key])
-		logging.debug('[%s] Removing stopwords', block_number)
+		logging.debug('[%s,%s] Removing stopwords', block_number, i)
 		doc[content_key] = utility.remove_stopwords(doc[content_key])
-		logging.debug('[%s] Stemming tokens', block_number)
+		logging.debug('[%s,%s] Stemming tokens', block_number, i)
 		doc[content_key] = utility.stem(doc[content_key])
 		for i, ngram_key in enumerate(ngram_keys):
 			n = i + 1
-			logging.debug('[%s] Generating %ss', block_number, ngram_key)
+			logging.debug('[%s,%s] Generating %ss', block_number, i, ngram_key)
 			doc[ngram_key] = utility.generate_ngrams(doc[content_key], n)
-			logging.debug('[%s] Counting %ss', block_number, ngram_key)
+			logging.debug('[%s,%s] Counting %ss', block_number, i, ngram_key)
 			doc[ngram_key] = utility.count_tokens(doc[ngram_key])
-			logging.debug('[%s] Processing %s postings and lengths', block_number, ngram_key)
+			logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, ngram_key)
 			for term, freq in doc[ngram_key].items():
 				if term not in block_index[ngram_key]:
 					block_index[ngram_key][term] = []
 				block_index[ngram_key][term].append((doc['document_id'], freq))
 				block_lengths[ngram_key][doc['document_id']] = get_length(doc[ngram_key])
+		i += 1
 
 	logging.info('Saving block #%s', block_number)
 
@@ -130,6 +132,7 @@ def main():
 				# Merge blocks
 				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
+				logging.debug('Processing merge heap')
 				target_term, target_postings_list = next(sorted_tuples)
 				for term, postings_list in sorted_tuples:
 					if target_term != term:
