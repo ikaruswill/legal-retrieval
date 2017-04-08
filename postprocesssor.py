@@ -9,7 +9,7 @@ POST_PROCESSOR_DIR = './query_exp_results.txt'
 AVERAGING_POLICY = 0
 SUMMATION_POLICY = 1
 MEAN_RECIPROCAL_RANK_POLICY = 2
-RANKING_POLICY = MEAN_RECIPROCAL_RANK_POLICY
+RANKING_POLICY = SUMMATION_POLICY
 
 SAMPLE_SIZE = 20
 
@@ -34,13 +34,15 @@ def postprocess(query_expansion_results):
 
 	processed_records = {}
 	for query_expansion_result in query_expansion_results:
-		for rank, score_doc_id_pair in enumerate(query_expansion_result):
-			if score_doc_id_pair.doc_id not in processed_records:
-				processed_records[score_doc_id_pair.doc_id] = {'score_id_pair': score_doc_id_pair, 'count': 0, 'mrr': 0}
-			processed_record = processed_records[score_doc_id_pair.doc_id]
-			processed_record['score_id_pair'].score += score_doc_id_pair.score
-			processed_record['count'] += 1
-			processed_record['mrr'] += (1.0 / (rank + 1))
+		for document_query_result in query_expansion_result:
+			for rank, score_doc_id_pair in enumerate(document_query_result):
+				if score_doc_id_pair.doc_id not in processed_records:
+					processed_records[score_doc_id_pair.doc_id] = {'score_id_pair': score_doc_id_pair, 'count': 0,
+																   'mrr': 0}
+				processed_record = processed_records[score_doc_id_pair.doc_id]
+				processed_record['score_id_pair'].score += score_doc_id_pair.score
+				processed_record['count'] += 1
+				processed_record['mrr'] += (1.0 / (rank + 1))
 
 	for doc_id in processed_records:
 		processed_records[doc_id] = apply_ranking_policy(processed_records[doc_id], number_of_queries)
