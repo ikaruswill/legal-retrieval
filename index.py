@@ -112,12 +112,13 @@ def usage():
 
 def main():
 	logging.info('Using block size of %s', block_size)
-	logging.info('Peak memory consumption is estimated to be {:,.2f}GB'.format(0.0022*block_size*multiprocessing.cpu_count()))
+	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.0022*block_size*multiprocessing.cpu_count()))
 	dict_file = open(dict_path, 'wb')
 	lengths_file = open(lengths_path, 'wb')
 	postings_file = open(postings_path, 'wb')
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
+		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.05*len(filenames)*5.1))
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
 		filepath_blocks = deque_chunks(filepaths, block_size)
 		block_count = len(filepath_blocks)
