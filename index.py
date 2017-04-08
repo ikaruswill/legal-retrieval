@@ -75,7 +75,7 @@ def process_block(file_paths, block_number):
 		file_path = file_paths.popleft()
 		if not file_path.endswith('.xml'):
 			continue
-		logging.debug('[%s,%s] Extracting document', block_number, i)
+		logging.debug('[%s,%s] Extracting document %s', block_number, i, os.path.split(file_path)[-1])
 		doc = utility.extract_doc(file_path)
 		logging.debug('[%s,%s] Removing CSS elements', block_number, i)
 		doc[content_key] = utility.remove_css_text(doc[content_key])
@@ -116,6 +116,7 @@ def process_block(file_paths, block_number):
 
 		with open(block_lengths_path, 'wb') as f:
 			utility.save_object(block_lengths[ngram_key], f)
+	logging.info('Block #%s complete', block_number)
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
