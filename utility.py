@@ -9,13 +9,55 @@ import xml.etree.ElementTree
 import pickle
 import re
 
+# Document extraction variables
+ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
+
+# Document extraction functions
+def str2bool(bool_str):
+	return bool_str.lower() in ("yes", "true", "t", "1")
+
+def parse_child(child):
+	if child.tag == 'str':
+		return child.text
+	elif child.tag == 'date':
+		return child.text # Can do date parsing
+	elif child.tag == 'bool':
+		return str2bool(child.text)
+	elif child.tag == 'long':
+		return int(child.text) # Python 3 int does long implicitly
+	elif child.tag == 'float':
+		return float(child.text)
+	elif child.tag == 'arr':
+		arr = []
+		for grandchild in child:
+			arr.append(parse_child(grandchild))
+		return arr
+	else:
+		exit('Unsupported tag: ', child.tag)
+
+def extract_doc(file_path):
+	doc = {}
+	root = xml.etree.ElementTree.parse(file_path).getroot()
+	for child in root:
+		key = child.attrib['name']
+		if key not in ignored_tag_names:
+			doc[key] = parse_child(child)
+
+	return doc
+
+
+# Preprocessing variables
 stopword_set = set(stopwords.words('english'))
 punctuation_set = set(punctuation)
 wnl = WordNetLemmatizer()
 stemmer = PorterStemmer()
 
+# Preprocessing functions, in order of application
 def tokenize(string):
 	return word_tokenize(string.lower())
+
+def remove_css_text(string):
+	return re.sub('[\.|#|@][\w\.\-]+[ \t]*[\w\.\-]+{.+} *$', '', string, flags=re.DOTALL|re.MULTILINE)
 
 def remove_punctuations(tokens):
 	return [token for token in tokens if token not in punctuation_set]
@@ -37,6 +79,8 @@ def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
 def count_tokens(tokens):
 	return Counter(tokens)
 
+
+# Object persistence functions
 def save_object(obj, f):
 	s_obj = pickle.dumps(obj)
 	f.write(s_obj)
@@ -52,39 +96,3 @@ def objects_in(f):
 		except EOFError:
 			return
 
-def remove_css_text(string):
-	return re.sub('[\.|#|@][\w\.\-]+[ \t]*[\w\.\-]+{.+} *$', '', string, flags=re.DOTALL|re.MULTILINE)
-
-def str2bool(bool_str):
-	return bool_str.lower() in ("yes", "true", "t", "1")
-
-# Whitelist fields for better performance in both space and time complexity
-def parse_child(child):
-	if child.tag == 'str':
-		return child.text
-	elif child.tag == 'date':
-		return child.text # Can do date parsing
-	elif child.tag == 'bool':
-		return str2bool(child.text)
-	elif child.tag == 'long':
-		return int(child.text) # Python 3 int does long implicitly
-	elif child.tag == 'float':
-		return float(child.text)
-	elif child.tag == 'arr':
-		arr = []
-		for grandchild in child:
-			arr.append(parse_child(grandchild))
-		return arr
-	else:
-		exit('Unsupported tag: ', child.tag)
-
-ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
-def extract_doc(file_path):
-	doc = {}
-	root = xml.etree.ElementTree.parse(file_path).getroot()
-	for child in root:
-		key = child.attrib['name']
-		if key not in ignored_tag_names:
-			doc[key] = parse_child(child)
-
-	return doc
