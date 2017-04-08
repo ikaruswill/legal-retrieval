@@ -129,8 +129,8 @@ def main():
 
 		# Merge step
 		logging.info('Merging blocks')
-		cumulative = 0
 		for ngram_key in ngram_keys:
+			cumulative = 0
 			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
 				# Open all blocks concurrently in block number order
