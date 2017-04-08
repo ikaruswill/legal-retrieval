@@ -2,6 +2,7 @@
 intelllex*/
 queries/
 *.txt
+*.blk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
