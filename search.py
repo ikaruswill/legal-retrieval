@@ -123,6 +123,21 @@ def handle_query(query, query_expansion=True):
 		query_expansion_results.append(query_with_doc(doc_id))
 	# TODO do reciprocal with results and query_expansion_results
 
+def load_dicts(dict_file):
+	dicts = []
+	current_dict = {}
+	model_offset = 0
+	prev_offset = 0
+	for term, doc_freq, offset in utility.objects_in(dict_file):
+		if offset == 0 and prev_offset != 0:
+			dicts.append(current_dict)
+			current_dict = {}
+			model_offset = prev_offset
+		current_dict[term] = {'doc_freq': doc_freq, 'offset': model_offset + offset}
+		prev_offset = dict_file.tell()
+
+	return tuple(dicts)
+
 def main():
 	global unigram_dict, bigram_dict, trigram_dict
 	global unigram_lengths, bigram_lengths, trigram_lengths
@@ -130,9 +145,7 @@ def main():
 	global postings_file, unigram_start_offset, bigram_start_offset, trigram_start_offset
 
 	with open(dict_path, 'rb') as f:
-		unigram_dict = utility.load_object(f)
-		bigram_dict = utility.load_object(f)
-		trigram_dict = utility.load_object(f)
+		unigram_dict, bigram_dict, trigram_dict = load_dicts(f)
 	print('dict loaded')
 
 	with open(lengths_path, 'rb') as f:
