@@ -132,6 +132,7 @@ def handle_query(query, query_expansion=True):
 def main():
 	global unigram_dict, bigram_dict, trigram_dict
 	global unigram_lengths, bigram_lengths, trigram_lengths
+	global postings_file
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict, trigram_dict = load_dicts(f)
@@ -184,5 +185,7 @@ if __name__ == '__main__':
 	if dir_doc == None or dict_path == None or postings_path == None or query_path == None or output_path == None or lengths_path == None:
 		usage()
 		sys.exit(2)
+
+	dir_doc += '/' if not dir_doc.endswith('/') else ''
 
 	main()
