@@ -81,11 +81,11 @@ def process_block(file_paths, block_number):
 			logging.debug('[%s,%s] Counting %ss', block_number, i, ngram_key)
 			doc[ngram_key] = utility.count_tokens(doc[ngram_key])
 			logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, ngram_key)
+			block_lengths[ngram_key][doc['document_id']] = get_length(doc[ngram_key])
 			for term, freq in doc[ngram_key].items():
 				if term not in block_index[ngram_key]:
 					block_index[ngram_key][term] = []
 				block_index[ngram_key][term].append((doc['document_id'], freq))
-				block_lengths[ngram_key][doc['document_id']] = get_length(doc[ngram_key])
 		i += 1
 
 	logging.info('Saving block #%s', block_number)
