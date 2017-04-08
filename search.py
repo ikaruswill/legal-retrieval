@@ -11,13 +11,6 @@ trigram_dict = {}
 unigram_lengths = {}
 bigram_lengths = {}
 trigram_lengths = {}
-unigram_postings_offset = {}
-bigram_postings_offset = {}
-trigram_postings_offset = {}
-postings_file = {}
-unigram_start_offset = 0
-bigram_start_offset = 0
-trigram_start_offset = 0
 
 class ScoreDocIDPair(object):
 	def __init__(self, score, doc_id):
@@ -33,9 +26,8 @@ class ScoreDocIDPair(object):
 	def __str__(self):
 		return '%6s : %.10f' % (self.doc_id, self.score)
 
-def get_posting(index, start_offset, postings_offsets):
-	byte_offset = start_offset + postings_offsets[index]
-	postings_file.seek(byte_offset, 0)
+def get_posting(term, dictionary):
+	postings_file.seek(dictionary[term]['offset'])
 	posting = utility.load_object(postings_file)
 	return posting
 
@@ -47,15 +39,13 @@ def strip_and_preprocess(line):
 	line = utility.stem(line)
 	return line
 
-def vsm(query, dictionary, posting_offset, start_offset, lengths):
+def vsm(query, dictionary, lengths):
 	scores = {}
 	query_weights = []
 	for term, query_tf in query.items():
 		if term in dictionary:
 			# print('term in dict')
-			dict_entry = dictionary.get(term)
-			# print('dict entry', dict_entry)
-			postings_entry = get_posting(dict_entry['index'], start_offset, posting_offset)
+			postings_entry = get_posting(term, dictionary)
 			# print('posting entry', postings_entry)
 			idf = math.log10(len(lengths) / len(postings_entry))
 			query_tf_weight = 1 + math.log10(query_tf)
@@ -104,15 +94,15 @@ def handle_query(query, query_expansion=True):
 		if len(phrase) >= 3: #three words original query or documents with more than 3 words
 			print('trigram case')
 			processed_query = process_query_into_ngram(phrase, 3)
-			results.append(vsm(processed_query, trigram_dict, trigram_postings_offset, trigram_start_offset, trigram_lengths))
+			results.append(vsm(processed_query, trigram_dict, trigram_lengths))
 		elif len(phrase) == 2:
 			print('bigram case')
 			processed_query = process_query_into_ngram(phrase, 2)
-			results.append(vsm(processed_query, bigram_dict, bigram_postings_offset, bigram_start_offset, bigram_lengths))
+			results.append(vsm(processed_query, bigram_dict, bigram_lengths))
 		else:
 			print('unigram case')
 			processed_query = process_query_into_ngram(phrase, 1)
-			results.append(vsm(processed_query, unigram_dict, unigram_postings_offset, unigram_start_offset, unigram_lengths))
+			results.append(vsm(processed_query, unigram_dict, unigram_lengths))
 
 	if not query_expansion:
 		return results
@@ -141,8 +131,6 @@ def load_dicts(dict_file):
 def main():
 	global unigram_dict, bigram_dict, trigram_dict
 	global unigram_lengths, bigram_lengths, trigram_lengths
-	global unigram_postings_offset, bigram_postings_offset, trigram_postings_offset
-	global postings_file, unigram_start_offset, bigram_start_offset, trigram_start_offset
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict, trigram_dict = load_dicts(f)
@@ -155,21 +143,7 @@ def main():
 	print('lengths loaded')
 
 	postings_file = open(postings_path, 'rb')
-
-	unigram_postings_offset = utility.load_object(postings_file)
-	unigram_postings_offset.insert(0, 0)
-	unigram_start_offset = postings_file.tell()
-	postings_file.seek(unigram_postings_offset[-1], 1)
-
-	bigram_postings_offset = utility.load_object(postings_file)
-	bigram_postings_offset.insert(0, 0)
-	bigram_start_offset = postings_file.tell()
-	postings_file.seek(bigram_postings_offset[-1], 1)
-
-	trigram_postings_offset = utility.load_object(postings_file)
-	trigram_postings_offset.insert(0, 0)
-	trigram_start_offset = postings_file.tell()
-	print('posting loaded')
+	print('posting opened')
 
 	with open(query_path, 'r') as f:
 		for line in f:
