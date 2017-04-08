@@ -1,72 +1,29 @@
+import collections
 import getopt
-import sys
-import os
-import utility
-import math
-import pickle
+import heapq
 import logging
+import math
+import multiprocessing
+import os
+import pickle
+import shutil
+import sys
+import utility
 
-def load_xml_data(dir_doc):
-	docs = []
-	for dirpath, dirnames, filenames in os.walk(dir_doc):
-		for name in sorted(filenames):
-			if name.endswith('.xml'):
-				file_path = os.path.join(dirpath, name)
-				docs.append(utility.extract_doc(file_path))
+# Set none for max processes
+process_count = None
+# Block size in number of documents, generally takes 2.2MB/doc
+block_size = 200
+block_ext = '.blk'
+temp_folder = 'tmp/'
+content_key = 'content'
+ngram_keys = ['unigram', 'bigram', 'trigram']
 
-	return docs
-
-def preprocess(docs, key):
-	iter_key_call(docs, key, utility.tokenize)
-	iter_key_call(docs, key, utility.remove_punctuations)
-	iter_key_call(docs, key, utility.remove_stopwords)
-	iter_key_call(docs, key, utility.stem)
-
-def build_dictionary(docs, key):
-	terms = set()
-	for doc in docs:
-		terms.update(doc[key].keys())
-
-	sorted_terms = sorted(list(terms))
-
-	dictionary = {}
-	for i, term in enumerate(sorted_terms):
-		dictionary[term] = {'index': i}
-
-	return dictionary
-
-# def build_inverted_dictionary(dictionary):
-# 	return [term for term, item in sorted(dictionary.items())]
-
-def build_and_populate_lengths(docs, key):
-	lengths = {}
-	for doc in docs:
-		sum_squares = 0
-		for term, freq in doc[key].items():
-			sum_squares += math.pow(1 + math.log10(freq), 2)
-		doc_id = doc['document_id']
-		lengths[doc_id] = math.sqrt(sum_squares)
-
-	return lengths
-
-# Also modifies dictionary by adding doc_freq key for each term
-def build_and_populate_postings(docs, key, dictionary):
-	postings = []
-	for term in dictionary:
-		postings.append([])
-
-	for doc in docs:
-		doc_id = int(doc['document_id'])
-		for term, freq in doc[key].items():
-			index = dictionary[term]['index']
-			# if len(postings[index]) > 0:
-			# 	gap = doc_id - postings[index][-1][0]
-			# 	postings[index].append((gap, freq))
-			# else:
-			# 	postings[index].append((doc_id, freq))
-			postings[index].append((doc_id, freq))
-
-	return postings
+def get_length(counted_tokens):
+	sum_squares = 0
+	for term, freq in counted_tokens.items():
+		sum_squares += math.pow(1 + math.log10(freq), 2)
+	return math.sqrt(sum_squares)
 
 def save_postings(postings, f):
 	sizes = []
@@ -83,65 +40,146 @@ def save_postings(postings, f):
 	for serialized_posting in serialized_postings:
 		f.write(serialized_posting)
 
-def iter_key_call(iterable, key, function, *args, **kwargs):
-	for dict_item in iterable:
-		dict_item[key] = function(dict_item[key], *args, **kwargs)
+def get_block_folder_path(tag=''):
+	script_path = os.path.dirname(os.path.realpath(__file__))
+	block_folder = temp_folder
+	block_folder += tag if tag == '' or tag.endswith('/') else tag + '/'
+	return os.path.join(script_path, block_folder)
 
-def copy_key(dicts, src_key, dest_key):
-	for item in dicts:
-		item[dest_key] = item[src_key]
+def get_block_path(tag, block_number):
+	block_folder_path = get_block_folder_path(tag)
+	if not os.path.exists(block_folder_path):
+		os.makedirs(block_folder_path)
+	return os.path.join(block_folder_path, str(block_number) + block_ext)
 
-def delete_key(dicts, delete_key):
-	for item in dicts:
-		item.pop(delete_key)
+def deque_chunks(l, n):
+	chunks = []
+	"""Yield successive n-sized chunks from l."""
+	for i in range(0, len(l), n):
+		chunks.append(collections.deque(l[i:i + n]))
+	return chunks
+
+def process_block(file_paths, block_number):
+	logging.info('Processing block #%s', block_number)
+	block_index = {key:{} for key in ngram_keys}
+	block_lengths = {key:{} for key in ngram_keys}
+	i = 0
+	while(len(file_paths)):
+		file_path = file_paths.popleft()
+		if not file_path.endswith('.xml'):
+			continue
+		logging.debug('[%s,%s] Extracting document', block_number, i)
+		doc = utility.extract_doc(file_path)
+		logging.debug('[%s,%s] Tokenizing document', block_number, i)
+		doc[content_key] = utility.tokenize(doc[content_key])
+		logging.debug('[%s,%s] Removing punctuations', block_number, i)
+		doc[content_key] = utility.remove_punctuations(doc[content_key])
+		logging.debug('[%s,%s] Removing stopwords', block_number, i)
+		doc[content_key] = utility.remove_stopwords(doc[content_key])
+		logging.debug('[%s,%s] Stemming tokens', block_number, i)
+		doc[content_key] = utility.stem(doc[content_key])
+		for k, ngram_key in enumerate(ngram_keys):
+			n = k + 1
+			logging.debug('[%s,%s] Generating %ss', block_number, i, ngram_key)
+			doc[ngram_key] = utility.generate_ngrams(doc[content_key], n)
+			logging.debug('[%s,%s] Counting %ss', block_number, i, ngram_key)
+			doc[ngram_key] = utility.count_tokens(doc[ngram_key])
+			logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, ngram_key)
+			block_lengths[ngram_key][doc['document_id']] = get_length(doc[ngram_key])
+			for term, freq in doc[ngram_key].items():
+				if term not in block_index[ngram_key]:
+					block_index[ngram_key][term] = []
+				block_index[ngram_key][term].append((int(doc['document_id']), freq))
+		i += 1
+
+	logging.info('Saving block #%s', block_number)
+
+	for ngram_key in ngram_keys:
+		logging.debug('[%s] Saving %s block', block_number, ngram_key)
+		# Save block
+		block_index_path = get_block_path('_'.join(('index', ngram_key,)), block_number)
+		block_lengths_path = get_block_path('_'.join(('lengths', ngram_key,)), block_number)
+
+		with open(block_index_path, 'wb') as f:
+			for term, postings_list in sorted(block_index[ngram_key].items()): # Each block sorted by term lexicographical order
+				utility.save_object((term, postings_list,), f)
+
+		with open(block_lengths_path, 'wb') as f:
+			utility.save_object(block_lengths[ngram_key], f)
 
 def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
-	logging.info('Creating new files')
-	# Append binary mode for repeated pickling and creation of new file
-	dict_file = open(dict_path, 'ab+')
-	lengths_file = open(lengths_path, 'ab+')
-	postings_file = open(postings_path, 'ab+')
+	logging.info('Using block size of %s', block_size)
+	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.0022*block_size*multiprocessing.cpu_count()))
+	dict_file = open(dict_path, 'wb')
+	lengths_file = open(lengths_path, 'wb')
+	postings_file = open(postings_path, 'wb')
 
-	logging.info('Parsing XML')
-	content_key = 'content'
-	docs = load_xml_data(dir_doc)
-	logging.info('Preprocessing documents')
-	preprocess(docs, content_key)
+	for dirpath, dirnames, filenames in os.walk(dir_doc):
+		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.05*len(filenames)*5.1))
+		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
+		filepath_blocks = deque_chunks(filepaths, block_size)
+		block_count = len(filepath_blocks)
 
-	keys = ['unigram', 'bigram', 'trigram']
+		logging.info('Begin indexing')
+		with multiprocessing.Pool(process_count) as pool:
+			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
-	for i, key in enumerate(keys):
-		ngram = i + 1
-		logging.info('[%s] Copying key', key)
-		copy_key(docs, content_key, key)
-		logging.info('[%s] Generating ngrams', key)
-		iter_key_call(docs, key, utility.generate_ngrams, n=ngram)
-		logging.info('[%s] Counting tokens', key)
-		iter_key_call(docs, key, utility.count_tokens)
-		logging.info('[%s] Building & populating lengths', key)
-		lengths = build_and_populate_lengths(docs, key)
-		logging.info('[%s] Building dictionary', key)
-		dictionary = build_dictionary(docs, key)
-		logging.info('[%s] Building & populating postings', key)
-		postings = build_and_populate_postings(docs, key, dictionary)
-		logging.info('[%s] Saving postings', key)
-		save_postings(postings, postings_file)
-		logging.info('[%s] Saving dictionary and lengths', key)
-		utility.save_object(dictionary, dict_file)
-		utility.save_object(lengths, lengths_file)
-		delete_key(docs, key)
+		# Merge step
+		logging.info('Merging blocks')
+		for ngram_key in ngram_keys:
+			cumulative = 0
+			logging.info('Merging %s block indexes', ngram_key)
+			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
+				# Open all blocks concurrently in block number order
+				filenames = sorted(filenames)
+				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
+				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
+				# Merge blocks
+				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-	logging.info('Closing files')
+				logging.debug('Processing %s merge heap', ngram_key)
+				target_term, target_postings_list = next(sorted_tuples)
+				for term, postings_list in sorted_tuples:
+					if target_term != term:
+						doc_freq = len(target_postings_list)
+						utility.save_object((target_term, doc_freq, cumulative), dict_file)
+						cumulative += utility.save_object(target_postings_list, postings_file)
+						target_term = term
+						target_postings_list = postings_list
+					else:
+						target_postings_list.extend(postings_list)
+				doc_freq = len(target_postings_list)
+				utility.save_object((target_term, doc_freq, cumulative), dict_file)
+				cumulative += utility.save_object(target_postings_list, postings_file)
+				
+				# Cleanup index file handles
+				for block_file_handle in block_file_handles:
+					block_file_handle.close()
+
+			logging.info('Merging %s block lengths', ngram_key)
+			lengths = {}
+			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
+				filenames = sorted(filenames)
+				for filename in filenames:
+					if filename.endswith(block_ext):
+						with open(os.path.join(dirpath, filename), 'rb') as f:
+							lengths.update(utility.load_object(f))
+				utility.save_object(lengths, lengths_file)
+
+	logging.info('Cleaning up blocks')
+	# Cleanup block files
+	shutil.rmtree(get_block_folder_path())
+
 	dict_file.close()
 	lengths_file.close()
 	postings_file.close()
 	logging.info('Indexing complete')
 
 if __name__ == '__main__':
-	logging.basicConfig(level=logging.INFO, datefmt='%d/%m/%y %H:%M:%S', format='%(asctime)s %(message)s')
+	logging.basicConfig(level=logging.INFO, datefmt='%d/%m %H:%M:%S', format='%(asctime)s %(message)s')
 	dir_doc = dict_path = postings_path = lengths_path = None
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:l:')
@@ -163,9 +201,9 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
-	logging.info('Begin indexing')
+	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
 	try:
-		logging.info('Deleting existing files')
+		logging.debug('Deleting existing files')
 		os.remove(dict_path)
 		os.remove(postings_path)
 		os.remove(lengths_path)

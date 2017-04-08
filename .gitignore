@@ -4,6 +4,7 @@ diff/
 doc_with_css/
 queries/
 *.txt
+*.blk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
