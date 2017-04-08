@@ -111,6 +111,7 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	logging.info('Using block size of %s', block_size)
 	logging.info('Peak memory consumption is estimated to be {:,.2f}GB'.format(0.0022*block_size*multiprocessing.cpu_count()))
 	dict_file = open(dict_path, 'wb')
 	lengths_file = open(lengths_path, 'wb')
@@ -121,14 +122,15 @@ def main():
 		filepath_blocks = deque_chunks(filepaths, block_size)
 		block_count = len(filepath_blocks)
 
-		logging.info('Begin Single Pass In-Memory Indexing')
+		logging.info('Begin indexing')
 		with multiprocessing.Pool(process_count) as pool:
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
-		logging.info('Merging block indexes')
+		logging.info('Merging blocks')
 		cumulative = 0
 		for ngram_key in ngram_keys:
+			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
 				# Open all blocks concurrently in block number order
 				filenames = sorted(filenames)
@@ -137,7 +139,7 @@ def main():
 				# Merge blocks
 				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-				logging.debug('Processing merge heap')
+				logging.debug('Processing %s merge heap', ngram_key)
 				target_term, target_postings_list = next(sorted_tuples)
 				for term, postings_list in sorted_tuples:
 					if target_term != term:
@@ -156,7 +158,7 @@ def main():
 				for block_file_handle in block_file_handles:
 					block_file_handle.close()
 
-			logging.info('Merging block lengths')
+			logging.info('Merging %s block lengths', ngram_key)
 			lengths = {}
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
 				filenames = sorted(filenames)
@@ -198,9 +200,9 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
-	logging.info('Begin indexing')
+	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
 	try:
-		logging.info('Deleting existing files')
+		logging.debug('Deleting existing files')
 		os.remove(dict_path)
 		os.remove(postings_path)
 		os.remove(lengths_path)
