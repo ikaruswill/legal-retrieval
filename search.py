@@ -26,6 +26,21 @@ class ScoreDocIDPair(object):
 	def __str__(self):
 		return '%6s : %.10f' % (self.doc_id, self.score)
 
+def load_dicts(dict_file):
+	dicts = []
+	current_dict = {}
+	model_offset = 0
+	prev_offset = 0
+	for term, doc_freq, offset in utility.objects_in(dict_file):
+		if offset == 0 and prev_offset != 0:
+			dicts.append(current_dict)
+			current_dict = {}
+			model_offset = prev_offset
+		current_dict[term] = {'doc_freq': doc_freq, 'offset': model_offset + offset}
+		prev_offset = dict_file.tell()
+
+	return tuple(dicts)
+
 def get_posting(term, dictionary):
 	postings_file.seek(dictionary[term]['offset'])
 	posting = utility.load_object(postings_file)
@@ -112,21 +127,6 @@ def handle_query(query, query_expansion=True):
 		print('query expansion with doc', doc_id)
 		query_expansion_results.append(query_with_doc(doc_id))
 	# TODO do reciprocal with results and query_expansion_results
-
-def load_dicts(dict_file):
-	dicts = []
-	current_dict = {}
-	model_offset = 0
-	prev_offset = 0
-	for term, doc_freq, offset in utility.objects_in(dict_file):
-		if offset == 0 and prev_offset != 0:
-			dicts.append(current_dict)
-			current_dict = {}
-			model_offset = prev_offset
-		current_dict[term] = {'doc_freq': doc_freq, 'offset': model_offset + offset}
-		prev_offset = dict_file.tell()
-
-	return tuple(dicts)
 
 def main():
 	global unigram_dict, bigram_dict, trigram_dict
