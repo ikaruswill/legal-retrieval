@@ -89,7 +89,7 @@ def process_block(file_paths, block_number):
 			for term, freq in doc[ngram_key].items():
 				if term not in block_index[ngram_key]:
 					block_index[ngram_key][term] = []
-				block_index[ngram_key][term].append((doc['document_id'], freq))
+				block_index[ngram_key][term].append((int(doc['document_id']), freq))
 		i += 1
 
 	logging.info('Saving block #%s', block_number)
