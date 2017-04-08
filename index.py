@@ -10,10 +10,12 @@ import multiprocessing
 import heapq
 import shutil
 
-# Block size in number of documents
-# Generally takes 2.2MB/doc
+# Set none for max processes
+process_count = None
+# Block size in number of documents, generally takes 2.2MB/doc
 block_size = 200
 block_ext = '.blk'
+temp_folder = 'tmp/'
 content_key = 'content'
 ngram_keys = ['unigram', 'bigram', 'trigram']
 
@@ -40,15 +42,15 @@ def save_postings(postings, f):
 
 def get_block_folder_path(tag=''):
 	script_path = os.path.dirname(os.path.realpath(__file__))
-	temp_folder = 'tmp/'
-	temp_folder += tag if tag == '' or tag.endswith('/') else tag + '/'
-	return os.path.join(script_path, temp_folder)
+	block_folder = temp_folder
+	block_folder += tag if tag == '' or tag.endswith('/') else tag + '/'
+	return os.path.join(script_path, block_folder)
 
 def get_block_path(tag, block_number):
-	temp_folder_path = get_block_folder_path(tag)
-	if not os.path.exists(temp_folder_path):
-		os.makedirs(temp_folder_path)
-	return os.path.join(temp_folder_path, str(block_number) + block_ext)
+	block_folder_path = get_block_folder_path(tag)
+	if not os.path.exists(block_folder_path):
+		os.makedirs(block_folder_path)
+	return os.path.join(block_folder_path, str(block_number) + block_ext)
 
 def deque_chunks(l, n):
 	chunks = []
@@ -120,7 +122,7 @@ def main():
 		block_count = len(filepath_blocks)
 
 		logging.info('Begin Single Pass In-Memory Indexing')
-		with multiprocessing.Pool() as pool:
+		with multiprocessing.Pool(process_count) as pool:
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
