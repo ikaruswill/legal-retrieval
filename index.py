@@ -1,14 +1,14 @@
-import getopt
-import sys
-import os
-import utility
-import math
-import pickle
-import logging
 import collections
-import multiprocessing
+import getopt
 import heapq
+import logging
+import math
+import multiprocessing
+import os
+import pickle
 import shutil
+import sys
+import utility
 
 # Set none for max processes
 process_count = None
