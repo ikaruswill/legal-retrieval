@@ -101,11 +101,13 @@ def handle_boolean_query(query):
 	phrases = query.split('AND')
 	query_expansion_results = []
 	for phrase in phrases:
+		query_expansion_result = []
 		result = handle_phrasal_query(phrase)
 		for index, doc_id in enumerate(get_all_doc_ids(result)):
 			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
-			query_expansion_results.append(query_with_doc(doc_id))
-			print('query expansion result size: ', len(query_expansion_results[-1]))
+			query_expansion_result.append(query_with_doc(doc_id))
+			print('query expansion result size: ', len(query_expansion_result[-1]))
+		query_expansion_results.append(query_expansion_result)
 
 	# TODO do reciprocal with results and query_expansion_results
 
