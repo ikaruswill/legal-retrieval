@@ -7,6 +7,7 @@ from nltk.util import ngrams
 from collections import Counter
 import xml.etree.ElementTree
 import pickle
+import re
 
 stopword_set = set(stopwords.words('english'))
 punctuation_set = set(punctuation)
@@ -50,6 +51,9 @@ def objects_in(f):
 			yield pickle.load(f)
 		except EOFError:
 			return
+
+def remove_css_text(string):
+	return re.sub('[\.|#|@][\w\.\-]+[ \t]*[\w\.\-]+{.+} *$', '', string, flags=re.DOTALL|re.MULTILINE)
 
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
