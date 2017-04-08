@@ -132,6 +132,7 @@ def handle_query(query, query_expansion=True):
 def main():
 	global unigram_dict, bigram_dict, trigram_dict
 	global unigram_lengths, bigram_lengths, trigram_lengths
+	global postings_file
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict, trigram_dict = load_dicts(f)
