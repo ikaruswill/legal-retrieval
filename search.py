@@ -32,13 +32,11 @@ def load_dicts(dict_file):
 	model_offset = 0
 	prev_offset = 0
 	for term, doc_freq, offset in utility.objects_in(dict_file):
-		if offset == 0 and prev_offset != 0:
+		if term == None and doc_freq == None:
+			model_offset = offset
 			dicts.append(current_dict)
 			current_dict = {}
-			model_offset = prev_offset
 		current_dict[term] = {'doc_freq': doc_freq, 'offset': model_offset + offset}
-		prev_offset = dict_file.tell()
-	dicts.append(current_dict)
 
 	return tuple(dicts)
 
@@ -134,6 +132,9 @@ def main():
 	global unigram_lengths, bigram_lengths, trigram_lengths
 	global postings_file
 
+	postings_file = open(postings_path, 'rb')
+	print('posting opened')
+
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict, trigram_dict = load_dicts(f)
 	print('dict loaded')
@@ -143,9 +144,6 @@ def main():
 		bigram_lengths = utility.load_object(f)
 		trigram_lengths = utility.load_object(f)
 	print('lengths loaded')
-
-	postings_file = open(postings_path, 'rb')
-	print('posting opened')
 
 	with open(query_path, 'r') as f:
 		for line in f:

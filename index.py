@@ -161,6 +161,8 @@ def main():
 				doc_freq = len(target_postings_list)
 				utility.save_object((target_term, doc_freq, cumulative), dict_file)
 				cumulative += utility.save_object(target_postings_list, postings_file)
+				# Save a marker in dictionary between models
+				utility.save_object((None, None, cumulative), dict_file)
 
 				# Cleanup index file handles
 				for block_file_handle in block_file_handles:
