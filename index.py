@@ -202,6 +202,8 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
+	dict_path += '/' if not dict_path.endswith('/') else ''
+
 	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
 	try:
 		logging.debug('Deleting existing files')

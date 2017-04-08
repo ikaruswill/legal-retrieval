@@ -186,4 +186,6 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
+	dir_doc += '/' if not dir_doc.endswith('/') else ''
+
 	main()
