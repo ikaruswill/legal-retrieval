@@ -10,7 +10,9 @@ import multiprocessing
 import heapq
 import shutil
 
-block_size = 20 # Number of documents
+# Block size in number of documents
+# Generally takes 2.2MB/doc
+block_size = 200
 block_ext = '.blk'
 content_key = 'content'
 ngram_keys = ['unigram', 'bigram', 'trigram']
@@ -107,6 +109,7 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	logging.info('Peak memory consumption is estimated to be {:,.2f}GB'.format(0.0022*block_size*multiprocessing.cpu_count()))
 	dict_file = open(dict_path, 'wb')
 	lengths_file = open(lengths_path, 'wb')
 	postings_file = open(postings_path, 'wb')
