@@ -43,7 +43,7 @@ def load_object(f):
 	return pickle.load(f)
 
 def remove_css_text(string):
-	return re.sub('[\.|#|@]?[\w\.\-\t ]+{.+}', '', string, flags=re.DOTALL)
+	return re.sub('[\.|#|@][\w\.\-]+[ \t]*[\w\.\-]+{.+} *$', '', string, flags=re.DOTALL|re.MULTILINE)
 
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
