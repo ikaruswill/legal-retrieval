@@ -25,6 +25,10 @@ def get_length(counted_tokens):
 		sum_squares += math.pow(1 + math.log10(freq), 2)
 	return math.sqrt(sum_squares)
 
+def get_int_filename(filename):
+	name = os.path.splitext(filename)[0]
+	return int(name)
+
 def save_postings(postings, f):
 	sizes = []
 	serialized_postings = []
@@ -120,7 +124,7 @@ def main():
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.05*len(filenames)*5.1))
-		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames)] # Files read in order of DocID
+		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)] # Files read in order of DocID
 		filepath_blocks = deque_chunks(filepaths, block_size)
 		block_count = len(filepath_blocks)
 
@@ -135,7 +139,7 @@ def main():
 			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
 				# Open all blocks concurrently in block number order
-				filenames = sorted(filenames)
+				filenames.sort(key=get_int_filename)
 				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
 				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
 				# Merge blocks
@@ -163,7 +167,7 @@ def main():
 			logging.info('Merging %s block lengths', ngram_key)
 			lengths = {}
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
-				filenames = sorted(filenames)
+				filenames.sort(key=get_int_filename)
 				for filename in filenames:
 					if filename.endswith(block_ext):
 						with open(os.path.join(dirpath, filename), 'rb') as f:
@@ -202,7 +206,7 @@ if __name__ == '__main__':
 		usage()
 		sys.exit(2)
 
-	dict_path += '/' if not dict_path.endswith('/') else ''
+	dir_doc += '/' if not dir_doc.endswith('/') else ''
 
 	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
 	try:
