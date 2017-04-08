@@ -27,7 +27,10 @@ def get_length(counted_tokens):
 
 def get_int_filename(filename):
 	name = os.path.splitext(filename)[0]
-	return int(name)
+	try:
+		return int(name)
+	except ValueError:
+		return 0
 
 def save_postings(postings, f):
 	sizes = []
