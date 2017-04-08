@@ -80,7 +80,7 @@ def count_tokens(tokens):
 	return Counter(tokens)
 
 
-# Object persistence functions
+# Object handling functions
 def save_object(obj, f):
 	s_obj = pickle.dumps(obj)
 	f.write(s_obj)
