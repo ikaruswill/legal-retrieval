@@ -38,6 +38,7 @@ def load_dicts(dict_file):
 			model_offset = prev_offset
 		current_dict[term] = {'doc_freq': doc_freq, 'offset': model_offset + offset}
 		prev_offset = dict_file.tell()
+	dicts.append(current_dict)
 
 	return tuple(dicts)
 
