@@ -74,8 +74,8 @@ def process_block(file_paths, block_number):
 		doc[content_key] = utility.remove_stopwords(doc[content_key])
 		logging.debug('[%s,%s] Stemming tokens', block_number, i)
 		doc[content_key] = utility.stem(doc[content_key])
-		for i, ngram_key in enumerate(ngram_keys):
-			n = i + 1
+		for k, ngram_key in enumerate(ngram_keys):
+			n = k + 1
 			logging.debug('[%s,%s] Generating %ss', block_number, i, ngram_key)
 			doc[ngram_key] = utility.generate_ngrams(doc[content_key], n)
 			logging.debug('[%s,%s] Counting %ss', block_number, i, ngram_key)
