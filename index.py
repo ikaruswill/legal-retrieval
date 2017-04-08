@@ -171,7 +171,7 @@ def main():
 	logging.info('Indexing complete')
 
 if __name__ == '__main__':
-	logging.basicConfig(level=logging.INFO, datefmt='%d/%m/%y %H:%M:%S', format='%(asctime)s %(message)s')
+	logging.basicConfig(level=logging.INFO, datefmt='%d/%m %H:%M:%S', format='%(asctime)s %(message)s')
 	dir_doc = dict_path = postings_path = lengths_path = None
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:l:')
