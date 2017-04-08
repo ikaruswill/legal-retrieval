@@ -8,17 +8,14 @@ import os
 
 unigram_dict = {}
 bigram_dict = {}
-trigram_dict = {}
 unigram_lengths = {}
 bigram_lengths = {}
-trigram_lengths = {}
 unigram_postings_offset = {}
 bigram_postings_offset = {}
-trigram_postings_offset = {}
 postings_file = {}
 unigram_start_offset = 0
 bigram_start_offset = 0
-trigram_start_offset = 0
+doc_query_cache = {}
 
 POST_PROCESSOR_DIR = './query_exp_results.txt'
 
@@ -29,6 +26,7 @@ def get_posting(index, start_offset, postings_offsets):
 	posting = utility.load_object(postings_file)
 	return posting
 
+
 def strip_and_preprocess(line):
 	line = line.strip('" ')
 	line = utility.tokenize(line)
@@ -37,16 +35,14 @@ def strip_and_preprocess(line):
 	line = utility.stem(line)
 	return line
 
+
 def vsm(query, dictionary, posting_offset, start_offset, lengths):
 	scores = {}
 	query_weights = []
 	for term, query_tf in query.items():
 		if term in dictionary:
-			# print('term in dict')
 			dict_entry = dictionary.get(term)
-			# print('dict entry', dict_entry)
 			postings_entry = get_posting(dict_entry['index'], start_offset, posting_offset)
-			# print('posting entry', postings_entry)
 			idf = math.log10(len(lengths) / len(postings_entry))
 			query_tf_weight = 1 + math.log10(query_tf)
 			for doc_id, doc_tf in postings_entry:
@@ -58,8 +54,6 @@ def vsm(query, dictionary, posting_offset, start_offset, lengths):
 
 	query_l2_norm = math.sqrt(sum([math.pow(query_weight, 2) for query_weight in query_weights]))
 
-	# print('lengths', lengths)
-	# print('scores', scores)
 	for doc_id, score in scores.items():
 		scores[doc_id] /= lengths[str(doc_id)] * query_l2_norm
 
@@ -69,55 +63,50 @@ def vsm(query, dictionary, posting_offset, start_offset, lengths):
 
 	return [heapq.heappop(scores_heap) for i in range(len(scores_heap))]
 
+
 def process_query_into_ngram(phrase, n):
 	ngrams = utility.generate_ngrams(phrase, n)
 	return utility.count_tokens(ngrams)
 
+
 def query_with_doc(doc_id):
 	file_path = os.path.join(dir_doc, str(doc_id) + '.xml')
-	if os.path.isfile(file_path):
+	if doc_id in doc_query_cache:
+		pass
+	elif os.path.isfile(file_path):
 		doc_content = utility.extract_doc(file_path).get('content')
-		return handle_query(doc_content, False)
+		doc_query_cache[doc_id] = handle_phrasal_query(doc_content)
+	return doc_query_cache[doc_id]
 
-def get_all_doc_ids(results):
-	# just simply OR for now
-	doc_ids = set()
-	for result in results:
-		doc_ids = doc_ids.union(list(map(lambda x: x.doc_id, result)))
+
+def get_all_doc_ids(result):
+	doc_ids = list(map(lambda x: x.doc_id, result))
 	return doc_ids
 
-def handle_query(query, query_expansion=True):
-	if query_expansion:
-		query = query.split('AND')
+
+def handle_phrasal_query(phrase):
+	phrase = strip_and_preprocess(phrase)
+	if len(phrase) >= 2:
+		print('bigram case')
+		processed_query = process_query_into_ngram(phrase, 2)
+		result = vsm(processed_query, bigram_dict, bigram_postings_offset, bigram_start_offset, bigram_lengths)
 	else:
-		query = [query]
-	phrases = list(map(strip_and_preprocess, query))
-	results = []
-	for phrase in phrases:
-		if len(phrase) >= 3: #three words original query or documents with more than 3 words
-			print('trigram case')
-			processed_query = process_query_into_ngram(phrase, 3)
-			results.append(vsm(processed_query, trigram_dict, trigram_postings_offset, trigram_start_offset, trigram_lengths))
-		elif len(phrase) == 2:
-			print('bigram case')
-			processed_query = process_query_into_ngram(phrase, 2)
-			results.append(vsm(processed_query, bigram_dict, bigram_postings_offset, bigram_start_offset, bigram_lengths))
-		else:
-			print('unigram case')
-			processed_query = process_query_into_ngram(phrase, 1)
-			results.append(vsm(processed_query, unigram_dict, unigram_postings_offset, unigram_start_offset, unigram_lengths))
+		print('unigram case')
+		processed_query = process_query_into_ngram(phrase, 1)
+		result = vsm(processed_query, unigram_dict, unigram_postings_offset, unigram_start_offset, unigram_lengths)
+	return result
 
-	if not query_expansion:
-		return results
 
-	print("Init Query: ", results)
-	print('result size: ', ', '.join(map(lambda x: str(len(x)), results)))
-
+def handle_boolean_query(query):
+	phrases = query.split('AND')
 	query_expansion_results = []
-	for doc_id in get_all_doc_ids(results):
-		print('query expansion with doc', doc_id)
-		query_expansion_results.append(query_with_doc(doc_id))
-		print('query expansion result size: ', ', '.join(map(lambda x: str(len(x)), query_expansion_results[-1])))
+	for phrase in phrases:
+		result = handle_phrasal_query(phrase)
+		for index, doc_id in enumerate(get_all_doc_ids(result)):
+			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
+			query_expansion_results.append(query_with_doc(doc_id))
+			print('query expansion result size: ', len(query_expansion_results[-1]))
+
 	# TODO do reciprocal with results and query_expansion_results
 
 	f = POST_PROCESSOR_DIR
@@ -126,21 +115,19 @@ def handle_query(query, query_expansion=True):
 
 
 def main():
-	global unigram_dict, bigram_dict, trigram_dict
-	global unigram_lengths, bigram_lengths, trigram_lengths
-	global unigram_postings_offset, bigram_postings_offset, trigram_postings_offset
-	global postings_file, unigram_start_offset, bigram_start_offset, trigram_start_offset
+	global unigram_dict, bigram_dict
+	global unigram_lengths, bigram_lengths
+	global unigram_postings_offset, bigram_postings_offset
+	global postings_file, unigram_start_offset, bigram_start_offset
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict = utility.load_object(f)
 		bigram_dict = utility.load_object(f)
-		trigram_dict = utility.load_object(f)
 	print('dict loaded')
 
 	with open(lengths_path, 'rb') as f:
 		unigram_lengths = utility.load_object(f)
 		bigram_lengths = utility.load_object(f)
-		trigram_lengths = utility.load_object(f)
 	print('lengths loaded')
 
 	postings_file = open(postings_path, 'rb')
@@ -155,9 +142,6 @@ def main():
 	bigram_start_offset = postings_file.tell()
 	postings_file.seek(bigram_postings_offset[-1], 1)
 
-	trigram_postings_offset = utility.load_object(postings_file)
-	trigram_postings_offset.insert(0, 0)
-	trigram_start_offset = postings_file.tell()
 	print('posting loaded')
 
 	with open(query_path, 'r') as f:
@@ -165,13 +149,15 @@ def main():
 			line = line.strip()
 			print('###QUERY###', line)
 			if line != '':
-				result = handle_query(line)
+				result = handle_boolean_query(line)
 
 	postings_file.close()
 	print('completed')
 
+
 def usage():
 	print("usage: " + sys.argv[0] + "-i directory-of-documents -d dictionary-file -p postings-file -q file-of-queries -l lengths-file -o output-file-of-results")
+
 
 if __name__ == '__main__':
 	dict_path = postings_path = query_path = output_path = lengths_path = None
@@ -195,7 +181,7 @@ if __name__ == '__main__':
 			lengths_path = a
 		else:
 			assert False, "unhandled option"
-	if dir_doc == None or dict_path == None or postings_path == None or query_path == None or output_path == None or lengths_path == None:
+	if dir_doc is None or dict_path is None or postings_path is None or query_path is None or output_path is None or lengths_path is None:
 		usage()
 		sys.exit(2)
 
