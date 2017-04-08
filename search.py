@@ -29,14 +29,12 @@ class ScoreDocIDPair(object):
 def load_dicts(dict_file):
 	dicts = []
 	current_dict = {}
-	model_offset = 0
-	prev_offset = 0
 	for term, doc_freq, offset in utility.objects_in(dict_file):
-		if term == None and doc_freq == None:
-			model_offset = offset
+		if term == None and doc_freq == None and offset == None:
 			dicts.append(current_dict)
 			current_dict = {}
-		current_dict[term] = {'doc_freq': doc_freq, 'offset': model_offset + offset}
+		else:
+			current_dict[term] = {'doc_freq': doc_freq, 'offset': offset}
 
 	return tuple(dicts)
 
@@ -75,7 +73,7 @@ def vsm(query, dictionary, lengths):
 	# print('lengths', lengths)
 	# print('scores', scores)
 	for doc_id, score in scores.items():
-		scores[doc_id] /= lengths[str(doc_id)] * query_l2_norm
+		scores[doc_id] /= lengths[doc_id] * query_l2_norm
 
 	#heapq by default is min heap, so * -1 to all score value
 	scores_heap = [ScoreDocIDPair(-score, doc_id) for doc_id, score in scores.items()]
@@ -102,7 +100,7 @@ def get_all_doc_ids(results):
 
 def handle_query(query, query_expansion=True):
 	phrases = list(map(strip_and_preprocess, query.split('AND')))
-	print(phrases)
+	# print(phrases)
 	results = []
 	for phrase in phrases:
 		if len(phrase) >= 3: #three words original query or documents with more than 3 words

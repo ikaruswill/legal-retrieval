@@ -74,7 +74,7 @@ def process_block(file_paths, block_number):
 			continue
 		logging.debug('[%s,%s] Extracting document', block_number, i)
 		doc = utility.extract_doc(file_path)
-		logging.debug('[%s,%s] Removing css text', block_number, i)
+		logging.debug('[%s,%s] Removing CSS elements', block_number, i)
 		doc[content_key] = utility.remove_css_text(doc[content_key])
 		logging.debug('[%s,%s] Tokenizing document', block_number, i)
 		doc[content_key] = utility.tokenize(doc[content_key])
@@ -136,8 +136,8 @@ def main():
 
 		# Merge step
 		logging.info('Merging blocks')
+		cumulative = 0
 		for ngram_key in ngram_keys:
-			cumulative = 0
 			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
 				# Open all blocks concurrently in block number order
@@ -162,7 +162,7 @@ def main():
 				utility.save_object((target_term, doc_freq, cumulative), dict_file)
 				cumulative += utility.save_object(target_postings_list, postings_file)
 				# Save a marker in dictionary between models
-				utility.save_object((None, None, cumulative), dict_file)
+				utility.save_object((None, None, None), dict_file)
 
 				# Cleanup index file handles
 				for block_file_handle in block_file_handles:
