@@ -4,44 +4,35 @@ import utility
 import math
 import heapq
 import os
+from utility import ScoreDocIDPair
 
 unigram_dict = {}
 bigram_dict = {}
-trigram_dict = {}
 unigram_lengths = {}
 bigram_lengths = {}
-trigram_lengths = {}
 
-class ScoreDocIDPair(object):
-	def __init__(self, score, doc_id):
-		self.score = score
-		self.doc_id = doc_id
+doc_query_cache = {}
 
-	def __lt__(self, other):
-		return int(self.doc_id) < int(other.doc_id) if self.score == other.score else self.score < other.score
+POST_PROCESSOR_DIR = './query_exp_results.txt'
 
-	def __repr__(self):
-		return '%6s : %.10f' % (self.doc_id, self.score)
-
-	def __str__(self):
-		return '%6s : %.10f' % (self.doc_id, self.score)
 
 def load_dicts(dict_file):
 	dicts = []
 	current_dict = {}
 	for term, doc_freq, offset in utility.objects_in(dict_file):
-		if term == None and doc_freq == None and offset == None:
+		if term is None and doc_freq is None and offset is None:
 			dicts.append(current_dict)
 			current_dict = {}
 		else:
 			current_dict[term] = {'doc_freq': doc_freq, 'offset': offset}
-
 	return tuple(dicts)
+
 
 def get_posting(term, dictionary):
 	postings_file.seek(dictionary[term]['offset'])
 	posting = utility.load_object(postings_file)
 	return posting
+
 
 def strip_and_preprocess(line):
 	line = line.strip('" ')
@@ -50,6 +41,7 @@ def strip_and_preprocess(line):
 	line = utility.remove_stopwords(line)
 	line = utility.stem(line)
 	return line
+
 
 def vsm(query, dictionary, lengths):
 	scores = {}
@@ -70,8 +62,6 @@ def vsm(query, dictionary, lengths):
 
 	query_l2_norm = math.sqrt(sum([math.pow(query_weight, 2) for query_weight in query_weights]))
 
-	# print('lengths', lengths)
-	# print('scores', scores)
 	for doc_id, score in scores.items():
 		scores[doc_id] /= lengths[doc_id] * query_l2_norm
 
@@ -81,66 +71,71 @@ def vsm(query, dictionary, lengths):
 
 	return [heapq.heappop(scores_heap) for i in range(len(scores_heap))]
 
+
 def process_query_into_ngram(phrase, n):
 	ngrams = utility.generate_ngrams(phrase, n)
 	return utility.count_tokens(ngrams)
 
+
 def query_with_doc(doc_id):
 	file_path = os.path.join(dir_doc, str(doc_id) + '.xml')
-	if os.path.isfile(file_path):
+	if doc_id in doc_query_cache:
+		pass
+	elif os.path.isfile(file_path):
 		doc_content = utility.extract_doc(file_path).get('content')
-		return handle_query(doc_content, False)
+		doc_query_cache[doc_id] = handle_phrasal_query(doc_content)
+	return doc_query_cache[doc_id]
 
-def get_all_doc_ids(results):
-	# just simply OR for now
-	doc_ids = set()
-	for result in results:
-		doc_ids = doc_ids.union(list(map(lambda x: x.doc_id, result)))
-	return doc_ids
 
-def handle_query(query, query_expansion=True):
-	phrases = list(map(strip_and_preprocess, query.split('AND')))
-	# print(phrases)
-	results = []
-	for phrase in phrases:
-		if len(phrase) >= 3: #three words original query or documents with more than 3 words
-			print('trigram case')
-			processed_query = process_query_into_ngram(phrase, 3)
-			results.append(vsm(processed_query, trigram_dict, trigram_lengths))
-		elif len(phrase) == 2:
-			print('bigram case')
-			processed_query = process_query_into_ngram(phrase, 2)
-			results.append(vsm(processed_query, bigram_dict, bigram_lengths))
-		else:
-			print('unigram case')
-			processed_query = process_query_into_ngram(phrase, 1)
-			results.append(vsm(processed_query, unigram_dict, unigram_lengths))
+def get_all_doc_ids(result):
+	return list(map(lambda x: x.doc_id, result))
 
-	if not query_expansion:
-		return results
 
+def handle_phrasal_query(phrase):
+	phrase = strip_and_preprocess(phrase)
+	if len(phrase) >= 2:
+		print('bigram case')
+		processed_query = process_query_into_ngram(phrase, 2)
+		result = vsm(processed_query, bigram_dict, bigram_lengths)
+	else:
+		print('unigram case')
+		processed_query = process_query_into_ngram(phrase, 1)
+		result = vsm(processed_query, unigram_dict, unigram_lengths)
+	return result
+
+
+def handle_query(query):
+	phrases = query.split('AND')
 	query_expansion_results = []
-	for doc_id in get_all_doc_ids(results):
-		print('query expansion with doc', doc_id)
-		query_expansion_results.append(query_with_doc(doc_id))
-	# TODO do reciprocal with results and query_expansion_results
+	for phrase in phrases:
+		query_expansion_result = []
+		result = handle_phrasal_query(phrase)
+		for index, doc_id in enumerate(get_all_doc_ids(result)):
+			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
+			query_expansion_result.append(query_with_doc(doc_id))
+			print('query expansion result size: ', len(query_expansion_result[-1]))
+		query_expansion_results.append(query_expansion_result)
+
+	f = POST_PROCESSOR_DIR
+	with open(f, 'wb') as f:
+		utility.save_object(query_expansion_results, f)
+
 
 def main():
-	global unigram_dict, bigram_dict, trigram_dict
-	global unigram_lengths, bigram_lengths, trigram_lengths
+	global unigram_dict, bigram_dict
+	global unigram_lengths, bigram_lengths
 	global postings_file
 
 	postings_file = open(postings_path, 'rb')
 	print('posting opened')
 
 	with open(dict_path, 'rb') as f:
-		unigram_dict, bigram_dict, trigram_dict = load_dicts(f)
+		unigram_dict, bigram_dict, _ = load_dicts(f)
 	print('dict loaded')
 
 	with open(lengths_path, 'rb') as f:
 		unigram_lengths = utility.load_object(f)
 		bigram_lengths = utility.load_object(f)
-		trigram_lengths = utility.load_object(f)
 	print('lengths loaded')
 
 	with open(query_path, 'r') as f:
@@ -152,6 +147,7 @@ def main():
 
 	postings_file.close()
 	print('completed')
+
 
 def usage():
 	print("usage: " + sys.argv[0] + "-i directory-of-documents -d dictionary-file -p postings-file -q file-of-queries -l lengths-file -o output-file-of-results")
@@ -178,7 +174,7 @@ if __name__ == '__main__':
 			lengths_path = a
 		else:
 			assert False, "unhandled option"
-	if dir_doc == None or dict_path == None or postings_path == None or query_path == None or output_path == None or lengths_path == None:
+	if dir_doc is None or dict_path is None or postings_path is None or query_path is None or output_path is None or lengths_path is None:
 		usage()
 		sys.exit(2)
 
