@@ -104,7 +104,7 @@ def handle_phrasal_query(phrase):
 	return result
 
 
-def handle_query(query):
+def handle_boolean_query(query):
 	phrases = query.split('AND')
 	query_expansion_results = []
 	for phrase in phrases:
@@ -143,7 +143,7 @@ def main():
 			line = line.strip()
 			print('###QUERY###', line)
 			if line != '':
-				result = handle_query(line)
+				handle_boolean_query(line)
 
 	postings_file.close()
 	print('completed')
