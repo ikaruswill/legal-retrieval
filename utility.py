@@ -7,42 +7,15 @@ from nltk.util import ngrams
 from collections import Counter
 import xml.etree.ElementTree
 import pickle
+import re
 
-def tokenize(string):
-		return word_tokenize(string.lower())
+# Document extraction variables
+ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 
-def remove_punctuations(tokens):
-	punctuation_set = set(punctuation)
-	return [token for token in tokens if token not in punctuation_set]
-
-def remove_stopwords(tokens):
-	stopword_set = set(stopwords.words('english'))
-	return [token for token in tokens if token not in stopword_set]
-
-def lemmatize(tokens):
-	wnl = WordNetLemmatizer()
-	return [wnl.lemmatize(token) for token in tokens]
-
-def stem(tokens):
-	stemmer = PorterStemmer()
-	return [stemmer.stem(token) for token in tokens]
-
-def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
-	return [' '.join(ngram) for ngram in ngrams(tokens, n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
-
-def count_tokens(tokens):
-	return Counter(tokens)
-
-def save_object(obj, f):
-	pickle.dump(obj, f)
-
-def load_object(f):
-	return pickle.load(f)
-
+# Document extraction functions
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
 
-# Whitelist fields for better performance in both space and time complexity
 def parse_child(child):
 	if child.tag == 'str':
 		return child.text
@@ -62,7 +35,6 @@ def parse_child(child):
 	else:
 		exit('Unsupported tag: ', child.tag)
 
-ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 def extract_doc(file_path):
 	doc = {}
 	root = xml.etree.ElementTree.parse(file_path).getroot()
@@ -73,6 +45,55 @@ def extract_doc(file_path):
 
 	return doc
 
+# Preprocessing variables
+stopword_set = set(stopwords.words('english'))
+punctuation_set = set(punctuation)
+wnl = WordNetLemmatizer()
+stemmer = PorterStemmer()
+
+# Preprocessing functions, in order of application
+def tokenize(string):
+	return word_tokenize(string.lower())
+
+def remove_css_text(string):
+	return re.sub('[\.|#|@][\w\.\-]+[ \t]*[\w\.\-]+{.+} *$', '', string, flags=re.DOTALL|re.MULTILINE)
+
+def remove_punctuations(tokens):
+	return [token for token in tokens if token not in punctuation_set]
+
+def remove_stopwords(tokens):
+	return [token for token in tokens if token not in stopword_set]
+
+def lemmatize(tokens):
+	return [wnl.lemmatize(token) for token in tokens]
+
+def stem(tokens):
+	return [stemmer.stem(token) for token in tokens]
+
+def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
+	if n == 1:
+		return tokens
+	return [' '.join(ngram) for ngram in ngrams(tokens, n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
+
+def count_tokens(tokens):
+	return Counter(tokens)
+
+
+# Object handling functions
+def save_object(obj, f):
+	s_obj = pickle.dumps(obj)
+	f.write(s_obj)
+	return len(s_obj)
+
+def load_object(f):
+	return pickle.load(f)
+
+def objects_in(f):
+	while True:
+		try:
+			yield pickle.load(f)
+		except EOFError:
+			return
 
 class ScoreDocIDPair(object):
 	def __init__(self, score, doc_id):
@@ -87,4 +108,3 @@ class ScoreDocIDPair(object):
 
 	def __str__(self):
 		return '%6s : %.10f' % (self.doc_id, self.score)
-
