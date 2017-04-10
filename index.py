@@ -11,13 +11,14 @@ import sys
 import utility
 
 # Set none for max processes
-process_count = None
+PROCESS_COUNT = None
 # Block size in number of documents, generally takes 2.2MB/doc
-block_size = 200
-block_ext = '.blk'
-temp_folder = 'tmp/'
-content_key = 'content'
-ngram_keys = ['unigram', 'bigram']
+BLOCK_SIZE = 200
+BLOCK_EXT = '.blk'
+TMP_PATH = 'tmp/'
+CONTENT_KEY = 'content'
+NGRAM_KEYS = ['unigram', 'bigram']
+LENGTHS_PATH = 'lengths.txt'
 
 def get_length(counted_tokens):
 	sum_squares = 0
@@ -34,7 +35,7 @@ def get_int_filename(filename):
 
 def get_block_folder_path(tag=''):
 	script_path = os.path.dirname(os.path.realpath(__file__))
-	block_folder = temp_folder
+	block_folder = TMP_PATH
 	block_folder += tag if tag == '' or tag.endswith('/') else tag + '/'
 	return os.path.join(script_path, block_folder)
 
@@ -42,7 +43,7 @@ def get_block_path(tag, block_number):
 	block_folder_path = get_block_folder_path(tag)
 	if not os.path.exists(block_folder_path):
 		os.makedirs(block_folder_path)
-	return os.path.join(block_folder_path, str(block_number) + block_ext)
+	return os.path.join(block_folder_path, str(block_number) + BLOCK_EXT)
 
 def deque_chunks(l, n):
 	chunks = []
@@ -53,8 +54,8 @@ def deque_chunks(l, n):
 
 def process_block(file_paths, block_number):
 	logging.info('Processing block #%s', block_number)
-	block_index = {key:{} for key in ngram_keys}
-	block_lengths = {key:{} for key in ngram_keys}
+	block_index = {key:{} for key in NGRAM_KEYS}
+	block_lengths = {key:{} for key in NGRAM_KEYS}
 	i = 0
 	while(len(file_paths)):
 		file_path = file_paths.popleft()
@@ -63,20 +64,20 @@ def process_block(file_paths, block_number):
 		logging.debug('[%s,%s] Extracting document %s', block_number, i, os.path.split(file_path)[-1])
 		doc = utility.extract_doc(file_path)
 		logging.debug('[%s,%s] Removing CSS elements', block_number, i)
-		doc[content_key] = utility.remove_css_text(doc[content_key])
+		doc[CONTENT_KEY] = utility.remove_css_text(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Tokenizing document', block_number, i)
-		doc[content_key] = utility.tokenize(doc[content_key])
+		doc[CONTENT_KEY] = utility.tokenize(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Removing punctuations', block_number, i)
-		doc[content_key] = utility.remove_punctuations(doc[content_key])
+		doc[CONTENT_KEY] = utility.remove_punctuations(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Removing stopwords', block_number, i)
-		doc[content_key] = utility.remove_stopwords(doc[content_key])
+		doc[CONTENT_KEY] = utility.remove_stopwords(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Stemming tokens', block_number, i)
-		doc[content_key] = utility.stem(doc[content_key])
-		for k, ngram_key in enumerate(ngram_keys):
+		doc[CONTENT_KEY] = utility.stem(doc[CONTENT_KEY])
+		for k, ngram_key in enumerate(NGRAM_KEYS):
 			n = k + 1
 			doc_id = int(doc['document_id'])
 			logging.debug('[%s,%s] Generating %ss', block_number, i, ngram_key)
-			doc[ngram_key] = utility.generate_ngrams(doc[content_key], n)
+			doc[ngram_key] = utility.generate_ngrams(doc[CONTENT_KEY], n)
 			logging.debug('[%s,%s] Counting %ss', block_number, i, ngram_key)
 			doc[ngram_key] = utility.count_tokens(doc[ngram_key])
 			logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, ngram_key)
@@ -89,7 +90,7 @@ def process_block(file_paths, block_number):
 
 	logging.info('Saving block #%s', block_number)
 
-	for ngram_key in ngram_keys:
+	for ngram_key in NGRAM_KEYS:
 		logging.debug('[%s] Saving %s block', block_number, ngram_key)
 		# Save block
 		block_index_path = get_block_path('_'.join(('index', ngram_key,)), block_number)
@@ -107,33 +108,33 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
-	logging.info('Using block size of %s', block_size)
-	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.00125*block_size*multiprocessing.cpu_count()))
+	logging.info('Using block size of %s', BLOCK_SIZE)
+	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.00125*BLOCK_SIZE*multiprocessing.cpu_count()))
 	dict_file = open(dict_path, 'wb')
-	lengths_file = open(lengths_path, 'wb')
+	lengths_file = open(LENGTHS_PATH, 'wb')
 	postings_file = open(postings_path, 'wb')
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		logging.info('Collection cardinality is: {:,}'.format(len(filenames)))
 		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.089*len(filenames)))
-		logging.info('Models set: {!r}'.format(ngram_keys))
+		logging.info('Models set: {!r}'.format(NGRAM_KEYS))
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)] # Files read in order of DocID
-		filepath_blocks = deque_chunks(filepaths, block_size)
+		filepath_blocks = deque_chunks(filepaths, BLOCK_SIZE)
 		block_count = len(filepath_blocks)
 
 		logging.info('Begin indexing')
-		with multiprocessing.Pool(process_count) as pool:
+		with multiprocessing.Pool(PROCESS_COUNT) as pool:
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
 		# Merge step
 		logging.info('Merging blocks')
 		size = 0
-		for ngram_key in ngram_keys:
+		for ngram_key in NGRAM_KEYS:
 			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
 				# Open all blocks concurrently in block number order
 				filenames.sort(key=get_int_filename)
-				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(block_ext)]
+				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
 				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
 				# Merge blocks
 				sorted_tuples = heapq.merge(*term_postings_list_tuples)
@@ -167,7 +168,7 @@ def main():
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
 				filenames.sort(key=get_int_filename)
 				for filename in filenames:
-					if filename.endswith(block_ext):
+					if filename.endswith(BLOCK_EXT):
 						with open(os.path.join(dirpath, filename), 'rb') as f:
 							lengths.update(utility.load_object(f))
 				utility.save_object(lengths, lengths_file)
@@ -183,9 +184,9 @@ def main():
 
 if __name__ == '__main__':
 	logging.basicConfig(level=logging.INFO, datefmt='%d/%m %H:%M:%S', format='%(asctime)s %(message)s')
-	dir_doc = dict_path = postings_path = lengths_path = None
+	dir_doc = dict_path = postings_path = None
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:l:')
+		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:')
 	except getopt.GetoptError as err:
 		usage()
 		sys.exit(2)
@@ -196,11 +197,9 @@ if __name__ == '__main__':
 			dict_path = a
 		elif o == '-p':
 			postings_path = a
-		elif o == '-l':
-			lengths_path = a
 		else:
 			assert False, "unhandled option"
-	if dir_doc == None or dict_path == None or postings_path == None or lengths_path == None:
+	if dir_doc == None or dict_path == None or postings_path == None:
 		usage()
 		sys.exit(2)
 
@@ -211,7 +210,7 @@ if __name__ == '__main__':
 		logging.debug('Deleting existing files')
 		os.remove(dict_path)
 		os.remove(postings_path)
-		os.remove(lengths_path)
+		os.remove(LENGTHS_PATH)
 	except OSError:
 		pass
 

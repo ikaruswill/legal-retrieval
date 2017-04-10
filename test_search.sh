@@ -7,4 +7,4 @@ else
 	py_cmd="python"
 fi
 
-$py_cmd search.py -i ./intelllex -d dictionary.txt -p postings.txt -q queries -o output.txt -l lengths.txt
+$py_cmd search.py -i ./intelllex -d dictionary.txt -p postings.txt -q queries -o output.txt

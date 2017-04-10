@@ -14,6 +14,7 @@ bigram_lengths = {}
 doc_query_cache = {}
 
 POST_PROCESSOR_DIR = './query_exp_results.txt'
+LENGTHS_PATH = 'lengths.txt'
 
 
 def load_dicts(dict_file):
@@ -135,7 +136,7 @@ def main():
 		unigram_dict, bigram_dict = load_dicts(f)
 	print('dict loaded')
 
-	with open(lengths_path, 'rb') as f:
+	with open(LENGTHS_PATH, 'rb') as f:
 		unigram_lengths = utility.load_object(f)
 		bigram_lengths = utility.load_object(f)
 	print('lengths loaded')
@@ -155,7 +156,7 @@ def usage():
 	print("usage: " + sys.argv[0] + "-i directory-of-documents -d dictionary-file -p postings-file -q file-of-queries -l lengths-file -o output-file-of-results")
 
 if __name__ == '__main__':
-	dict_path = postings_path = query_path = output_path = lengths_path = None
+	dict_path = postings_path = query_path = output_path = None
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:q:o:l:')
 	except getopt.GetoptError as err:
@@ -172,11 +173,9 @@ if __name__ == '__main__':
 			query_path = a
 		elif o == '-o':
 			output_path = a
-		elif o == '-l':
-			lengths_path = a
 		else:
 			assert False, "unhandled option"
-	if dir_doc is None or dict_path is None or postings_path is None or query_path is None or output_path is None or lengths_path is None:
+	if dir_doc is None or dict_path is None or postings_path is None or query_path is None or output_path is None:
 		usage()
 		sys.exit(2)
 
