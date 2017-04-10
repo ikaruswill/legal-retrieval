@@ -136,19 +136,20 @@ def main():
 				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
 				logging.debug('Processing %s merge heap', ngram_key)
+				size = 0
 				target_term, target_postings_list = next(sorted_tuples)
 				for term, postings_list in sorted_tuples:
 					if target_term != term:
 						doc_freq = len(target_postings_list)
-						size = utility.save_object(target_postings_list, postings_file)
 						utility.save_object((target_term, doc_freq, size), dict_file)
+						size = utility.save_object(target_postings_list, postings_file)
 						target_term = term
 						target_postings_list = postings_list
 					else:
 						target_postings_list.extend(postings_list)
 				doc_freq = len(target_postings_list)
-				size = utility.save_object(target_postings_list, postings_file)
 				utility.save_object((target_term, doc_freq, size), dict_file)
+				utility.save_object(target_postings_list, postings_file)
 				# Save a marker in dictionary between models
 				utility.save_object((None, None, None), dict_file)
 
