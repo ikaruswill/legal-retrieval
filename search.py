@@ -5,6 +5,8 @@ import math
 import heapq
 import os
 from utility import ScoreDocIDPair
+import multiprocessing
+from itertools import repeat
 
 import postprocesssor
 
@@ -33,7 +35,7 @@ def load_dicts(dict_file):
 	return tuple(dicts)
 
 
-def get_posting(term, dictionary):
+def get_posting(term, dictionary, postings_file):
 	postings_file.seek(dictionary[term]['offset'])
 	posting = utility.load_object(postings_file)
 	return posting
@@ -48,13 +50,13 @@ def strip_and_preprocess(line):
 	return line
 
 
-def vsm(query, dictionary, lengths):
+def vsm(query, dictionary, lengths, postings_file):
 	scores = {}
 	query_weights = []
 	for term, query_tf in query.items():
 		if term in dictionary:
 			# print('term in dict')
-			postings_entry = get_posting(term, dictionary)
+			postings_entry = get_posting(term, dictionary, postings_file)
 			# print('posting entry', postings_entry)
 			idf = math.log10(len(lengths) / len(postings_entry))
 			query_tf_weight = 1 + math.log10(query_tf)
@@ -82,13 +84,14 @@ def process_query_into_ngram(phrase, n):
 	return utility.count_tokens(ngrams)
 
 
-def query_with_doc(doc_id):
+def query_with_doc(doc_id, postings_path):
 	file_path = os.path.join(dir_doc, str(doc_id) + '.xml')
-	if doc_id in doc_query_cache:
-		pass
-	elif os.path.isfile(file_path):
-		doc_content = utility.extract_doc(file_path).get('content')
-		doc_query_cache[doc_id] = handle_phrasal_query(doc_content)
+	with open(postings_path, 'rb') as postings_file:
+		if doc_id in doc_query_cache:
+			pass
+		elif os.path.isfile(file_path):
+			doc_content = utility.extract_doc(file_path).get('content')
+			doc_query_cache[doc_id] = handle_phrasal_query(doc_content, postings_file)
 	return doc_query_cache[doc_id]
 
 
@@ -96,16 +99,16 @@ def get_all_doc_ids(result):
 	return list(map(lambda x: x.doc_id, result))
 
 
-def handle_phrasal_query(phrase):
+def handle_phrasal_query(phrase, postings_file):
 	phrase = strip_and_preprocess(phrase)
 	if len(phrase) >= 2:
 		print('bigram case')
 		processed_query = process_query_into_ngram(phrase, 2)
-		result = vsm(processed_query, bigram_dict, bigram_lengths)
+		result = vsm(processed_query, bigram_dict, bigram_lengths, postings_file)
 	else:
 		print('unigram case')
 		processed_query = process_query_into_ngram(phrase, 1)
-		result = vsm(processed_query, unigram_dict, unigram_lengths)
+		result = vsm(processed_query, unigram_dict, unigram_lengths, postings_file)
 	return result
 
 
@@ -114,11 +117,16 @@ def handle_boolean_query(query):
 	boolean_query_results = []
 	for phrase in phrases:
 		query_expansion_result = []
-		result = handle_phrasal_query(phrase)
-		for index, doc_id in enumerate(get_all_doc_ids(result)):
-			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
-			query_expansion_result.append(query_with_doc(doc_id))
-			print('query expansion result size: ', len(query_expansion_result[-1]))
+		with open(postings_path, 'rb') as postings_file:
+			result = handle_phrasal_query(phrase, postings_file)
+		all_doc_ids = get_all_doc_ids(result)
+		with multiprocessing.Pool() as pool:
+			pool.starmap(query_with_doc, zip(all_doc_ids, repeat(postings_path)))
+
+		# for index, doc_id in enumerate(get_all_doc_ids(result)):
+		# 	print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
+		# 	query_expansion_result.append(query_with_doc(doc_id))
+		# 	print('query expansion result size: ', len(query_expansion_result[-1]))
 		boolean_query_results.append(query_expansion_result)
 
 	# # development purpose since postprocessor.py is much faster than search.py
@@ -133,10 +141,10 @@ def handle_boolean_query(query):
 def main():
 	global unigram_dict, bigram_dict
 	global unigram_lengths, bigram_lengths
-	global postings_file
+	# global postings_file
 
-	postings_file = open(postings_path, 'rb')
-	print('posting opened')
+	# postings_file = open(postings_path, 'rb')
+	# print('posting opened')
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict = load_dicts(f)
@@ -159,7 +167,7 @@ def main():
 	with open(output_path, 'w') as f:
 		f.write(output)
 
-	postings_file.close()
+	# postings_file.close()
 	print('completed')
 
 
