@@ -12,7 +12,7 @@ import utility
 
 # Set none for max processes
 PROCESS_COUNT = None
-# Block size in number of documents, generally takes 2.2MB/doc
+# Block size in number of documents, generally takes 1.25MB/doc
 BLOCK_SIZE = 200
 BLOCK_EXT = '.blk'
 TMP_PATH = 'tmp/'
@@ -108,6 +108,15 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
+	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
+	try:
+		logging.debug('Deleting existing files')
+		os.remove(dict_path)
+		os.remove(postings_path)
+		os.remove(LENGTHS_PATH)
+	except OSError:
+		pass
+
 	logging.info('Using block size of %s', BLOCK_SIZE)
 	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.00125*BLOCK_SIZE*multiprocessing.cpu_count()))
 	dict_file = open(dict_path, 'wb')
@@ -204,14 +213,5 @@ if __name__ == '__main__':
 		sys.exit(2)
 
 	dir_doc += '/' if not dir_doc.endswith('/') else ''
-
-	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
-	try:
-		logging.debug('Deleting existing files')
-		os.remove(dict_path)
-		os.remove(postings_path)
-		os.remove(LENGTHS_PATH)
-	except OSError:
-		pass
 
 	main()
