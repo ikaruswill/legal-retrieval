@@ -4,6 +4,7 @@ import utility
 import math
 import heapq
 import os
+import time
 from utility import ScoreDocIDPair
 
 import postprocesssor
@@ -14,6 +15,10 @@ unigram_lengths = {}
 bigram_lengths = {}
 
 doc_query_cache = {}
+
+UNIGRAM = 'UNIGRAM'
+BIGRAM = 'BIGRAM'
+postings_cache = {UNIGRAM: {}, BIGRAM: {}}
 
 POST_PROCESSOR_DIR = './query_exp_results.txt'
 LENGTHS_PATH = 'lengths.txt'
@@ -33,10 +38,21 @@ def load_dicts(dict_file):
 	return tuple(dicts)
 
 
-def get_posting(term, dictionary):
-	postings_file.seek(dictionary[term]['offset'])
-	posting = utility.load_object(postings_file)
-	return posting
+def get_posting(term, dictionary_type):
+	if dictionary_type == BIGRAM:
+		dictionary = bigram_dict
+	elif dictionary_type == UNIGRAM:
+		dictionary = unigram_dict
+	else:
+		return False
+	if term not in postings_cache[dictionary_type]:
+		postings_file.seek(dictionary[term]['offset'])
+		posting = utility.load_object(postings_file)
+		postings_cache[dictionary_type][term] = posting
+	return postings_cache[dictionary_type][term]
+	# postings_file.seek(dictionary[term]['offset'])
+	# posting = utility.load_object(postings_file)
+	# return posting
 
 
 def strip_and_preprocess(line):
@@ -48,13 +64,21 @@ def strip_and_preprocess(line):
 	return line
 
 
-def vsm(query, dictionary, lengths):
+def vsm(query, dictionary_type):
+	if dictionary_type == BIGRAM:
+		dictionary = bigram_dict
+		lengths = bigram_lengths
+	elif dictionary_type == UNIGRAM:
+		dictionary = unigram_dict
+		lengths = unigram_lengths
+	else:
+		return False
 	scores = {}
 	query_weights = []
 	for term, query_tf in query.items():
 		if term in dictionary:
 			# print('term in dict')
-			postings_entry = get_posting(term, dictionary)
+			postings_entry = get_posting(term, dictionary_type)
 			# print('posting entry', postings_entry)
 			idf = math.log10(len(lengths) / len(postings_entry))
 			query_tf_weight = 1 + math.log10(query_tf)
@@ -101,11 +125,11 @@ def handle_phrasal_query(phrase):
 	if len(phrase) >= 2:
 		print('bigram case')
 		processed_query = process_query_into_ngram(phrase, 2)
-		result = vsm(processed_query, bigram_dict, bigram_lengths)
+		result = vsm(processed_query, BIGRAM)
 	else:
 		print('unigram case')
 		processed_query = process_query_into_ngram(phrase, 1)
-		result = vsm(processed_query, unigram_dict, unigram_lengths)
+		result = vsm(processed_query, UNIGRAM)
 	return result
 
 
@@ -153,7 +177,9 @@ def main():
 			line = line.strip()
 			print('###QUERY###', line)
 			if line != '':
+				init_time = time.time()
 				result = handle_boolean_query(line)
+				print('time passed: ', time.time() - init_time)
 
 	output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
 	with open(output_path, 'w') as f:
