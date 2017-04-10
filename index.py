@@ -17,7 +17,7 @@ block_size = 200
 block_ext = '.blk'
 temp_folder = 'tmp/'
 content_key = 'content'
-ngram_keys = ['unigram', 'bigram', 'trigram']
+ngram_keys = ['unigram', 'bigram']
 
 def get_length(counted_tokens):
 	sum_squares = 0
