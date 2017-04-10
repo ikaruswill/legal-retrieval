@@ -149,7 +149,7 @@ def main():
 						target_postings_list.extend(postings_list)
 				doc_freq = len(target_postings_list)
 				utility.save_object((target_term, doc_freq, size), dict_file)
-				utility.save_object(target_postings_list, postings_file)
+				size = utility.save_object(target_postings_list, postings_file)
 				# Save a marker in dictionary between models
 				utility.save_object((None, None, None), dict_file)
 
