@@ -114,7 +114,9 @@ def main():
 	postings_file = open(postings_path, 'wb')
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
-		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.05*len(filenames)*5.1))
+		logging.info('Collection cardinality is: {:,}'.format(len(filenames)))
+		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.089*len(filenames)))
+		logging.info('Models set: {!r}'.format(ngram_keys))
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)] # Files read in order of DocID
 		filepath_blocks = deque_chunks(filepaths, block_size)
 		block_count = len(filepath_blocks)
