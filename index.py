@@ -125,7 +125,6 @@ def main():
 
 		# Merge step
 		logging.info('Merging blocks')
-		cumulative = 0
 		for ngram_key in ngram_keys:
 			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
@@ -141,15 +140,15 @@ def main():
 				for term, postings_list in sorted_tuples:
 					if target_term != term:
 						doc_freq = len(target_postings_list)
-						utility.save_object((target_term, doc_freq, cumulative), dict_file)
-						cumulative += utility.save_object(target_postings_list, postings_file)
+						size = utility.save_object(target_postings_list, postings_file)
+						utility.save_object((target_term, doc_freq, size), dict_file)
 						target_term = term
 						target_postings_list = postings_list
 					else:
 						target_postings_list.extend(postings_list)
 				doc_freq = len(target_postings_list)
-				utility.save_object((target_term, doc_freq, cumulative), dict_file)
-				cumulative += utility.save_object(target_postings_list, postings_file)
+				size = utility.save_object(target_postings_list, postings_file)
+				utility.save_object((target_term, doc_freq, size), dict_file)
 				# Save a marker in dictionary between models
 				utility.save_object((None, None, None), dict_file)
 
