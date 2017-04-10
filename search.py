@@ -20,13 +20,13 @@ def load_dicts(dict_file):
 	dicts = []
 	current_dict = {}
 	offset = 0
-	for term, doc_freq, diff in utility.objects_in(dict_file):
-		if term is None and doc_freq is None and diff is None:
+	for term, diff in utility.objects_in(dict_file):
+		if term is None and diff is None:
 			dicts.append(current_dict)
 			current_dict = {}
 		else:
 			offset += diff
-			current_dict[term] = {'doc_freq': doc_freq, 'offset': offset}
+			current_dict[term] = {'offset': offset}
 	return tuple(dicts)
 
 
