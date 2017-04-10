@@ -132,7 +132,7 @@ def main():
 	print('posting opened')
 
 	with open(dict_path, 'rb') as f:
-		unigram_dict, bigram_dict, _ = load_dicts(f)
+		unigram_dict, bigram_dict = load_dicts(f)
 	print('dict loaded')
 
 	with open(lengths_path, 'rb') as f:
