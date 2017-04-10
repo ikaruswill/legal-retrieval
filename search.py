@@ -6,6 +6,8 @@ import heapq
 import os
 from utility import ScoreDocIDPair
 
+import postprocesssor
+
 unigram_dict = {}
 bigram_dict = {}
 unigram_lengths = {}
@@ -109,7 +111,7 @@ def handle_phrasal_query(phrase):
 
 def handle_boolean_query(query):
 	phrases = query.split('AND')
-	query_expansion_results = []
+	boolean_query_results = []
 	for phrase in phrases:
 		query_expansion_result = []
 		result = handle_phrasal_query(phrase)
@@ -117,11 +119,15 @@ def handle_boolean_query(query):
 			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
 			query_expansion_result.append(query_with_doc(doc_id))
 			print('query expansion result size: ', len(query_expansion_result[-1]))
-		query_expansion_results.append(query_expansion_result)
+		boolean_query_results.append(query_expansion_result)
 
-	f = POST_PROCESSOR_DIR
-	with open(f, 'wb') as f:
-		utility.save_object(query_expansion_results, f)
+	# # development purpose since postprocessor.py is much faster than search.py
+	# f = POST_PROCESSOR_DIR
+	# with open(f, 'wb') as f:
+	# 	utility.save_object(boolean_query_results, f)
+
+	results = postprocesssor.postprocess(boolean_query_results)
+	return results
 
 
 def main():
@@ -141,12 +147,17 @@ def main():
 		bigram_lengths = utility.load_object(f)
 	print('lengths loaded')
 
+	result = []
 	with open(query_path, 'r') as f:
 		for line in f:
 			line = line.strip()
 			print('###QUERY###', line)
 			if line != '':
-				handle_boolean_query(line)
+				result = handle_boolean_query(line)
+
+	output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
+	with open(output_path, 'w') as f:
+		f.write(output)
 
 	postings_file.close()
 	print('completed')
