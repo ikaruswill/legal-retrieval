@@ -125,6 +125,7 @@ def main():
 
 		# Merge step
 		logging.info('Merging blocks')
+		size = 0
 		for ngram_key in ngram_keys:
 			logging.info('Merging %s block indexes', ngram_key)
 			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
@@ -136,7 +137,6 @@ def main():
 				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
 				logging.debug('Processing %s merge heap', ngram_key)
-				size = 0
 				target_term, target_postings_list = next(sorted_tuples)
 				for term, postings_list in sorted_tuples:
 					if target_term != term:
