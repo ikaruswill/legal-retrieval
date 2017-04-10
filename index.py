@@ -32,21 +32,6 @@ def get_int_filename(filename):
 	except ValueError:
 		return 0
 
-def save_postings(postings, f):
-	sizes = []
-	serialized_postings = []
-
-	cumulative = 0
-	for posting in postings:
-		serialized_posting = pickle.dumps(posting)
-		cumulative += len(serialized_posting)
-		sizes.append(cumulative)
-		serialized_postings.append(serialized_posting)
-
-	pickle.dump(sizes, f)
-	for serialized_posting in serialized_postings:
-		f.write(serialized_posting)
-
 def get_block_folder_path(tag=''):
 	script_path = os.path.dirname(os.path.realpath(__file__))
 	block_folder = temp_folder
