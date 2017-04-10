@@ -108,7 +108,7 @@ def usage():
 
 def main():
 	logging.info('Using block size of %s', block_size)
-	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.0022*block_size*multiprocessing.cpu_count()))
+	logging.info('Peak memory consumption is estimated to be: {:,.2f}GB'.format(0.00125*block_size*multiprocessing.cpu_count()))
 	dict_file = open(dict_path, 'wb')
 	lengths_file = open(lengths_path, 'wb')
 	postings_file = open(postings_path, 'wb')
