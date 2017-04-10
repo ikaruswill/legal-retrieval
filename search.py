@@ -19,11 +19,13 @@ POST_PROCESSOR_DIR = './query_exp_results.txt'
 def load_dicts(dict_file):
 	dicts = []
 	current_dict = {}
-	for term, doc_freq, offset in utility.objects_in(dict_file):
-		if term is None and doc_freq is None and offset is None:
+	offset = 0
+	for term, doc_freq, diff in utility.objects_in(dict_file):
+		if term is None and doc_freq is None and diff is None:
 			dicts.append(current_dict)
 			current_dict = {}
 		else:
+			offset += diff
 			current_dict[term] = {'doc_freq': doc_freq, 'offset': offset}
 	return tuple(dicts)
 
