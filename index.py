@@ -143,18 +143,18 @@ def main():
 					# Save current pair to file if next term in lexicographical order is different
 					# Also buffer next pair for future comparison cycles
 					if target_term != term:
-						doc_freq = len(target_postings_list)
-						utility.save_object((target_term, doc_freq, size), dict_file)
+						utility.save_object((target_term, size), dict_file)
 						size = utility.save_object(target_postings_list, postings_file)
 						target_term = term
 						target_postings_list = postings_list
 					else:
+					# Merge duplicate pairs from heap, in memory buffer
 						target_postings_list.extend(postings_list)
-				doc_freq = len(target_postings_list)
-				utility.save_object((target_term, doc_freq, size), dict_file)
+				# Save last pair buffered in memory as no subsequent pairs exist 
+				utility.save_object((target_term, size), dict_file)
 				size = utility.save_object(target_postings_list, postings_file)
 				# Save a marker in dictionary between models
-				utility.save_object((None, None, None), dict_file)
+				utility.save_object((None, None), dict_file)
 
 				# Cleanup index file handles
 				for block_file_handle in block_file_handles:
