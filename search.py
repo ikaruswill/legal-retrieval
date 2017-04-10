@@ -4,6 +4,7 @@ import utility
 import math
 import heapq
 import os
+import multiprocessing
 from utility import ScoreDocIDPair
 
 unigram_dict = {}
@@ -90,7 +91,6 @@ def query_with_doc(doc_id):
 def get_all_doc_ids(result):
 	return list(map(lambda x: x.doc_id, result))
 
-
 def handle_phrasal_query(phrase):
 	phrase = strip_and_preprocess(phrase)
 	if len(phrase) >= 2:
@@ -110,10 +110,14 @@ def handle_boolean_query(query):
 	for phrase in phrases:
 		query_expansion_result = []
 		result = handle_phrasal_query(phrase)
+		jobs = []
 		for index, doc_id in enumerate(get_all_doc_ids(result)):
+			p = multiprocessing.Process(target=query_with_doc, args=(doc_id,))
 			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
 			query_expansion_result.append(query_with_doc(doc_id))
 			print('query expansion result size: ', len(query_expansion_result[-1]))
+			jobs.append(p)
+			p.start()
 		query_expansion_results.append(query_expansion_result)
 
 	f = POST_PROCESSOR_DIR
