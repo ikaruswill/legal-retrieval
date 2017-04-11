@@ -13,7 +13,7 @@ import utility
 # Set none for max processes
 PROCESS_COUNT = None
 # Block size in number of documents, generally takes 1.25MB/doc
-BLOCK_SIZE = 200
+BLOCK_SIZE = 800
 BLOCK_EXT = '.blk'
 TMP_PATH = 'tmp/'
 CONTENT_KEY = 'content'
