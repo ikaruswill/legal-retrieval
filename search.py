@@ -20,7 +20,7 @@ def load_dict(dict_file):
 	offset = 0
 	for term, diff in utility.objects_in(dict_file):
 		offset += diff
-		current_dict[term] = {'offset': offset}
+		dictionary[term] = {'offset': offset}
 	return dictionary
 
 
@@ -38,6 +38,7 @@ def load_postings(token):
 	postings = utility.load_object(postings_file)
 	return postings
 
+
 def get_biword_postings(tokens, dictionary):
 	l_token, r_token = tokens[0], tokens[1]
 	l_postings = load_postings(l_token)
@@ -51,6 +52,7 @@ def get_biword_postings(tokens, dictionary):
 		position_pairs = walk_and_retrieve(l_positions, r_positions, diff=1)
 		biword_postings.append((doc_id, position_pairs,))
 	return biword_postings
+
 
 def walk_and_retrieve(l_list, r_list, key=lambda x:x, item=lambda x:x, diff=0):
 	l_list = iter(l_list)
@@ -83,7 +85,7 @@ def strip_and_preprocess(line):
 	return line
 
 
-def vsm(phrase_tokens, lengths):
+def vsm(phrase_tokens):
 	scores = {}
 	query_weights = []
 	for term, query_tf in query.items():
@@ -127,7 +129,7 @@ def get_all_doc_ids(result):
 
 def handle_phrasal_query(phrase):
 	phrase_tokens = strip_and_preprocess(phrase)
-	result = vsm(phrase_tokens, bigram_dict, bigram_lengths)
+	result = vsm(phrase_tokens)
 	return result
 
 
