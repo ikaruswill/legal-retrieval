@@ -120,12 +120,6 @@ def vsm(query, dictionary, lengths):
 
 	return [heapq.heappop(scores_heap) for i in range(len(scores_heap))]
 
-
-def process_query_into_ngram(phrase, n):
-	ngrams = utility.generate_ngrams(phrase, n)
-	return utility.count_tokens(ngrams)
-
-
 def query_with_doc(doc_id):
 	file_path = os.path.join(dir_doc, str(doc_id) + '.xml')
 	if doc_id in doc_query_cache:
@@ -141,15 +135,13 @@ def get_all_doc_ids(result):
 
 
 def handle_phrasal_query(phrase):
-	phrase = strip_and_preprocess(phrase)
-	if len(phrase) >= 2:
+	phrase_tokens = strip_and_preprocess(phrase)
+	if len(phrase) == 2:
 		print('bigram case')
-		processed_query = process_query_into_ngram(phrase, 2)
-		result = vsm(processed_query, bigram_dict, bigram_lengths)
+		result = vsm(phrase_tokens, bigram_dict, bigram_lengths)
 	else:
 		print('unigram case')
-		processed_query = process_query_into_ngram(phrase, 1)
-		result = vsm(processed_query, unigram_dict, unigram_lengths)
+		result = vsm(phrase_tokens, unigram_dict, unigram_lengths)
 	return result
 
 
