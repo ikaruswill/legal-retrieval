@@ -37,6 +37,26 @@ def get_posting(term, dictionary):
 	postings_file.seek(dictionary[term]['offset'])
 	posting = utility.load_object(postings_file)
 	return posting
+def walk_and_retrieve(l_list, r_list, key=lambda x:x, item=lambda x:x, diff=0):
+	l_list = iter(l_list)
+	r_list = iter(r_list)
+	res = []
+	l = next(l_list)
+	r = next(r_list)
+
+	while True:
+		try:
+			key_diff = key(r) - key(l)
+			if key_diff == diff:
+				res.append((item(l), item(r),))
+				l = next(l_list)
+				r = next(r_list)
+			elif key_diff > diff:
+				next(l)
+			else:
+				next(r)
+		except StopIteration:
+			return res
 
 
 def strip_and_preprocess(line):
