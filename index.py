@@ -167,8 +167,6 @@ def main():
 			# Save last pair buffered in memory as no subsequent pairs exist 
 			utility.save_object((target_term, size), dict_file)
 			size = utility.save_object(target_postings_list, postings_file)
-			# Save a marker in dictionary between models
-			utility.save_object((None, None), dict_file)
 
 			# Cleanup index file handles
 			for block_file_handle in block_file_handles:
