@@ -32,11 +32,11 @@ def load_dicts(dict_file):
 			current_dict[term] = {'offset': offset}
 	return tuple(dicts)
 
+def load_postings(token, dictionary):
+	postings_file.seek(dictionary[token]['offset'])
+	postings = utility.load_object(postings_file)
+	return postings
 
-def get_posting(term, dictionary):
-	postings_file.seek(dictionary[term]['offset'])
-	posting = utility.load_object(postings_file)
-	return posting
 def walk_and_retrieve(l_list, r_list, key=lambda x:x, item=lambda x:x, diff=0):
 	l_list = iter(l_list)
 	r_list = iter(r_list)
