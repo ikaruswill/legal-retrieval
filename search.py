@@ -34,8 +34,9 @@ def get_postings(term_tokens):
 
 
 def load_postings(token):
-	postings_file.seek(dictionary[token]['offset'])
-	postings = utility.load_object(postings_file)
+	if token in dictionary:
+		postings_file.seek(dictionary[token]['offset'])
+		postings = utility.load_object(postings_file)
 	return postings
 
 
