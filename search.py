@@ -198,7 +198,7 @@ def usage():
 	print("usage: " + sys.argv[0] + "-i directory-of-documents -d dictionary-file -p postings-file -q file-of-queries -l lengths-file -o output-file-of-results")
 
 if __name__ == '__main__':
-	dict_path = postings_path = query_path = output_path = None
+	dir_doc = dict_path = postings_path = query_path = output_path = None
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:q:o:l:')
 	except getopt.GetoptError as err:
