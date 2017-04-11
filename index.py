@@ -23,9 +23,8 @@ def index_document(tokens):
 	doc_index = {}
 	for pos, term in enumerate(tokens):
 		if term not in doc_index:
-			doc_index[term] = [0, []]
-		doc_index[term][0] += 1
-		doc_index[term][1].append(pos)
+			doc_index[term] = []
+		doc_index[term].append(pos)
 	return doc_index
 
 def get_length(doc_index):
@@ -86,11 +85,12 @@ def process_block(file_paths, block_number):
 		doc_index = index_document(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Appending to block', block_number, i)
 		sum_squares = 0
-		for term, posting in doc_index.items():
+		for term, positions in doc_index.items():
+			tf = len(positions)
 			if term not in block_index:
 				block_index[term] = []
-			block_index[term].append((doc_id, posting[0], posting[1]))
-			sum_squares += math.pow(1 + math.log10(posting[0]), 2)
+			block_index[term].append((doc_id, positions,))
+			sum_squares += math.pow(1 + math.log10(tf), 2)
 		block_lengths[doc_id] = math.sqrt(sum_squares)
 		i += 1
 
