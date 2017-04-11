@@ -136,12 +136,7 @@ def get_all_doc_ids(result):
 
 def handle_phrasal_query(phrase):
 	phrase_tokens = strip_and_preprocess(phrase)
-	if len(phrase) == 2:
-		print('bigram case')
-		result = vsm(phrase_tokens, bigram_dict, bigram_lengths)
-	else:
-		print('unigram case')
-		result = vsm(phrase_tokens, unigram_dict, unigram_lengths)
+	result = vsm(phrase_tokens, bigram_dict, bigram_lengths)
 	return result
 
 
