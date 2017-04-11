@@ -13,17 +13,17 @@ import utility
 # Set none for max processes
 PROCESS_COUNT = None
 # Block size in number of documents, generally takes 1.25MB/doc
-BLOCK_SIZE = 400
+BLOCK_SIZE = 200
 BLOCK_EXT = '.blk'
 TMP_PATH = 'tmp/'
 CONTENT_KEY = 'content'
-NGRAM_KEYS = ['unigram', 'bigram']
+NGRAM_KEYS = ['unigram']
 LENGTHS_PATH = 'lengths.txt'
 
-def get_length(counted_tokens):
+def get_length(doc_index):
 	sum_squares = 0
-	for term, freq in counted_tokens.items():
-		sum_squares += math.pow(1 + math.log10(freq), 2)
+	for posting in doc_index.values():
+		sum_squares += math.pow(1 + math.log10(posting[0]), 2)
 	return math.sqrt(sum_squares)
 
 def get_int_filename(filename):
@@ -54,8 +54,8 @@ def deque_chunks(l, n):
 
 def process_block(file_paths, block_number):
 	logging.info('Processing block #%s', block_number)
-	block_index = {key:{} for key in NGRAM_KEYS}
-	block_lengths = {key:{} for key in NGRAM_KEYS}
+	block_index = {}
+	block_lengths = {}
 	i = 0
 	while(len(file_paths)):
 		file_path = file_paths.popleft()
@@ -73,35 +73,40 @@ def process_block(file_paths, block_number):
 		doc[CONTENT_KEY] = utility.remove_stopwords(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Stemming tokens', block_number, i)
 		doc[CONTENT_KEY] = utility.stem(doc[CONTENT_KEY])
-		for k, ngram_key in enumerate(NGRAM_KEYS):
-			n = k + 1
-			doc_id = int(doc['document_id'])
-			logging.debug('[%s,%s] Generating %ss', block_number, i, ngram_key)
-			doc[ngram_key] = utility.generate_ngrams(doc[CONTENT_KEY], n)
-			logging.debug('[%s,%s] Counting %ss', block_number, i, ngram_key)
-			doc[ngram_key] = utility.count_tokens(doc[ngram_key])
-			logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, ngram_key)
-			block_lengths[ngram_key][doc_id] = get_length(doc[ngram_key])
-			for term, freq in doc[ngram_key].items():
-				if term not in block_index[ngram_key]:
-					block_index[ngram_key][term] = []
-				block_index[ngram_key][term].append((doc_id, freq,))
+		doc_id = int(doc['document_id'])
+		logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, CONTENT_KEY)
+		doc_index = {}
+		for j, term in enumerate(doc[CONTENT_KEY]):
+			if term not in doc_index:
+				doc_index[term] = [0, []]
+			doc_index[term][0] += 1
+			doc_index[term][1].append(j)
 		i += 1
+		sum_squares = 0
+		for term, posting in doc_index.items():
+			if term not in block_index:
+				block_index[term] = []
+			block_index[term].append((doc_id, posting[0], posting[1]))
+			sum_squares += math.pow(1 + math.log10(posting[0]), 2)
+
+		block_lengths[doc_id] = math.sqrt(sum_squares)
 
 	logging.info('Saving block #%s', block_number)
 
-	for ngram_key in NGRAM_KEYS:
-		logging.debug('[%s] Saving %s block', block_number, ngram_key)
-		# Save block
-		block_index_path = get_block_path('_'.join(('index', ngram_key,)), block_number)
-		block_lengths_path = get_block_path('_'.join(('lengths', ngram_key,)), block_number)
+	
+	logging.debug('[%s] Saving %s block', block_number, CONTENT_KEY)
+	# Save block
+	block_index_path = get_block_path('_'.join(('index', CONTENT_KEY,)), block_number)
+	block_lengths_path = get_block_path('_'.join(('lengths', CONTENT_KEY,)), block_number)
 
-		with open(block_index_path, 'wb') as f:
-			for term, postings_list in sorted(block_index[ngram_key].items()): # Each block sorted by term lexicographical order
-				utility.save_object((term, postings_list,), f)
+	with open(block_index_path, 'wb') as f:
+		for term, postings_list in sorted(block_index.items()): # Each block sorted by term lexicographical order
+			if postings_list == {}:
+				print('WTF', term)
+			utility.save_object((term, postings_list,), f)
 
-		with open(block_lengths_path, 'wb') as f:
-			utility.save_object(block_lengths[ngram_key], f)
+	with open(block_lengths_path, 'wb') as f:
+		utility.save_object(block_lengths, f)
 	logging.info('Block #%s complete', block_number)
 
 def usage():
@@ -138,43 +143,43 @@ def main():
 		# Merge step
 		logging.info('Merging blocks')
 		size = 0
-		for ngram_key in NGRAM_KEYS:
-			logging.info('Merging %s block indexes', ngram_key)
-			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
-				# Open all blocks concurrently in block number order
-				filenames.sort(key=get_int_filename)
-				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
-				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
-				# Merge blocks
-				sorted_tuples = heapq.merge(*term_postings_list_tuples)
+		# for ngram_key in NGRAM_KEYS:
+		logging.info('Merging %s block indexes', CONTENT_KEY)
+		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', CONTENT_KEY,)))):
+			# Open all blocks concurrently in block number order
+			filenames.sort(key=get_int_filename)
+			block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
+			term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
+			# Merge blocks
+			sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-				logging.debug('Processing %s merge heap', ngram_key)
-				# Buffer first term, postings pair in memory
-				target_term, target_postings_list = next(sorted_tuples)
-				for term, postings_list in sorted_tuples:
-					# Save current pair to file if next term in lexicographical order is different
-					# Also buffer next pair for future comparison cycles
-					if target_term != term:
-						utility.save_object((target_term, size), dict_file)
-						size = utility.save_object(target_postings_list, postings_file)
-						target_term = term
-						target_postings_list = postings_list
-					else:
-					# Merge duplicate pairs from heap, in memory buffer
-						target_postings_list.extend(postings_list)
-				# Save last pair buffered in memory as no subsequent pairs exist 
-				utility.save_object((target_term, size), dict_file)
-				size = utility.save_object(target_postings_list, postings_file)
-				# Save a marker in dictionary between models
-				utility.save_object((None, None), dict_file)
+			logging.debug('Processing %s merge heap', CONTENT_KEY)
+			# Buffer first term, postings pair in memory
+			target_term, target_postings_list = next(sorted_tuples)
+			for term, postings_list in sorted_tuples:
+				# Save current pair to file if next term in lexicographical order is different
+				# Also buffer next pair for future comparison cycles
+				if target_term != term:
+					utility.save_object((target_term, size), dict_file)
+					size = utility.save_object(target_postings_list, postings_file)
+					target_term = term
+					target_postings_list = postings_list
+				else:
+				# Merge duplicate pairs from heap, in memory buffer
+					target_postings_list.extend(postings_list)
+			# Save last pair buffered in memory as no subsequent pairs exist 
+			utility.save_object((target_term, size), dict_file)
+			size = utility.save_object(target_postings_list, postings_file)
+			# Save a marker in dictionary between models
+			utility.save_object((None, None), dict_file)
 
-				# Cleanup index file handles
-				for block_file_handle in block_file_handles:
-					block_file_handle.close()
+			# Cleanup index file handles
+			for block_file_handle in block_file_handles:
+				block_file_handle.close()
 
-			logging.info('Merging %s block lengths', ngram_key)
+			logging.info('Merging %s block lengths', CONTENT_KEY)
 			lengths = {}
-			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
+			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', CONTENT_KEY,)))):
 				filenames.sort(key=get_int_filename)
 				for filename in filenames:
 					if filename.endswith(BLOCK_EXT):
