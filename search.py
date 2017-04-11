@@ -69,9 +69,9 @@ def walk_and_retrieve(l_list, r_list, key=lambda x:x, item=lambda x:x, diff=0):
 				l = next(l_list)
 				r = next(r_list)
 			elif key_diff > diff:
-				next(l)
+				next(l_list)
 			else:
-				next(r)
+				next(r_list)
 		except StopIteration:
 			return res
 
