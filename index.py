@@ -17,8 +17,25 @@ BLOCK_SIZE = 200
 BLOCK_EXT = '.blk'
 TMP_PATH = 'tmp/'
 CONTENT_KEY = 'content'
-NGRAM_KEYS = ['unigram']
 LENGTHS_PATH = 'lengths.txt'
+
+def index_document(tokens):
+	doc_index = {}
+	for pos, term in enumerate(tokens):
+		if term not in doc_index:
+			doc_index[term] = [0, []]
+		doc_index[term][0] += 1
+		doc_index[term][1].append(pos)
+	return doc_index
+
+def append_to_block(doc_index, block_index, block_lengths):
+	sum_squares = 0
+	for term, posting in doc_index.items():
+		if term not in block_index:
+			block_index[term] = []
+		block_index[term].append((doc_id, posting[0], posting[1]))
+		sum_squares += math.pow(1 + math.log10(posting[0]), 2)
+	block_lengths[doc_id] = math.sqrt(sum_squares)
 
 def get_length(doc_index):
 	sum_squares = 0
@@ -74,35 +91,20 @@ def process_block(file_paths, block_number):
 		logging.debug('[%s,%s] Stemming tokens', block_number, i)
 		doc[CONTENT_KEY] = utility.stem(doc[CONTENT_KEY])
 		doc_id = int(doc['document_id'])
-		logging.debug('[%s,%s] Processing %s postings and lengths', block_number, i, CONTENT_KEY)
-		doc_index = {}
-		for j, term in enumerate(doc[CONTENT_KEY]):
-			if term not in doc_index:
-				doc_index[term] = [0, []]
-			doc_index[term][0] += 1
-			doc_index[term][1].append(j)
+		logging.debug('[%s,%s] Indexing document', block_number, i)
+		doc_index = index_document(doc[CONTENT_KEY])
+		logging.debug('[%s,%s] Appending to block', block_number, i)
+		append_to_block(doc_index, block_index, block_lengths)
 		i += 1
-		sum_squares = 0
-		for term, posting in doc_index.items():
-			if term not in block_index:
-				block_index[term] = []
-			block_index[term].append((doc_id, posting[0], posting[1]))
-			sum_squares += math.pow(1 + math.log10(posting[0]), 2)
-
-		block_lengths[doc_id] = math.sqrt(sum_squares)
 
 	logging.info('Saving block #%s', block_number)
-
-	
-	logging.debug('[%s] Saving %s block', block_number, CONTENT_KEY)
 	# Save block
-	block_index_path = get_block_path('_'.join(('index', CONTENT_KEY,)), block_number)
-	block_lengths_path = get_block_path('_'.join(('lengths', CONTENT_KEY,)), block_number)
+	block_index_path = get_block_path('index', block_number)
+	block_lengths_path = get_block_path('lengths', block_number)
 
 	with open(block_index_path, 'wb') as f:
-		for term, postings_list in sorted(block_index.items()): # Each block sorted by term lexicographical order
-			if postings_list == {}:
-				print('WTF', term)
+		# Each block sorted by term lexicographical order
+		for term, postings_list in sorted(block_index.items()):
 			utility.save_object((term, postings_list,), f)
 
 	with open(block_lengths_path, 'wb') as f:
@@ -113,7 +115,7 @@ def usage():
 	print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file -l lengths-file")
 
 def main():
-	logging.info('[Multi-Process Single Pass In-Memory Indexer]')
+	logging.info('[Multi-Process Single Pass In-Memory Positional Indexer]')
 	try:
 		logging.debug('Deleting existing files')
 		os.remove(dict_path)
@@ -131,7 +133,6 @@ def main():
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		logging.info('Collection cardinality is: {:,}'.format(len(filenames)))
 		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.089*len(filenames)))
-		logging.info('Models set: {!r}'.format(NGRAM_KEYS))
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)] # Files read in order of DocID
 		filepath_blocks = deque_chunks(filepaths, BLOCK_SIZE)
 		block_count = len(filepath_blocks)
@@ -143,9 +144,8 @@ def main():
 		# Merge step
 		logging.info('Merging blocks')
 		size = 0
-		# for ngram_key in NGRAM_KEYS:
-		logging.info('Merging %s block indexes', CONTENT_KEY)
-		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', CONTENT_KEY,)))):
+		logging.info('Merging block indexes')
+		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('index')):
 			# Open all blocks concurrently in block number order
 			filenames.sort(key=get_int_filename)
 			block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
@@ -153,7 +153,7 @@ def main():
 			# Merge blocks
 			sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-			logging.debug('Processing %s merge heap', CONTENT_KEY)
+			logging.debug('Processing merge heap')
 			# Buffer first term, postings pair in memory
 			target_term, target_postings_list = next(sorted_tuples)
 			for term, postings_list in sorted_tuples:
@@ -177,9 +177,9 @@ def main():
 			for block_file_handle in block_file_handles:
 				block_file_handle.close()
 
-			logging.info('Merging %s block lengths', CONTENT_KEY)
+			logging.info('Merging block lengths')
 			lengths = {}
-			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', CONTENT_KEY,)))):
+			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('lengths')):
 				filenames.sort(key=get_int_filename)
 				for filename in filenames:
 					if filename.endswith(BLOCK_EXT):
