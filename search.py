@@ -28,7 +28,7 @@ def get_postings(term_tokens):
 	if len(term_tokens) == 1:
 		return load_postings(term)
 	elif len(term_tokens) == 2:
-		return get_biword_postings(term_tokens, dictionary)
+		return get_biword_postings(term_tokens)
 	else:
 		pass
 
@@ -39,7 +39,7 @@ def load_postings(token):
 	return postings
 
 
-def get_biword_postings(tokens, dictionary):
+def get_biword_postings(tokens):
 	l_token, r_token = tokens[0], tokens[1]
 	l_postings = load_postings(l_token)
 	r_postings = load_postings(r_token)
