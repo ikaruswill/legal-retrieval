@@ -4,6 +4,7 @@ import utility
 import math
 import heapq
 import os
+import operator
 from utility import ScoreDocIDPair
 
 import postprocesssor
