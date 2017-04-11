@@ -18,7 +18,7 @@ LENGTHS_PATH = 'lengths.txt'
 def load_dict(dict_file):
 	dictionary = {}
 	offset = 0
-	for term, diff in utility.load_object(dict_file):
+	for term, diff in utility.objects_in(dict_file):
 		offset += diff
 		current_dict[term] = {'offset': offset}
 	return dictionary
