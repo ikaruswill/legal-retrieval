@@ -33,6 +33,15 @@ def load_dicts(dict_file):
 			current_dict[term] = {'offset': offset}
 	return tuple(dicts)
 
+def get_postings(term_tokens, dictionary):
+	if len(term_tokens) == 1:
+		return load_postings(term, dictionary)
+	elif len(term_tokens) == 2:
+		return get_biword_postings(term_tokens, dictionary)
+	else:
+		pass
+
+
 def load_postings(token, dictionary):
 	postings_file.seek(dictionary[token]['offset'])
 	postings = utility.load_object(postings_file)
@@ -89,7 +98,7 @@ def vsm(query, dictionary, lengths):
 	for term, query_tf in query.items():
 		if term in dictionary:
 			# print('term in dict')
-			postings_entry = get_posting(term, dictionary)
+			postings_entry = get_postings(term, dictionary)
 			# print('posting entry', postings_entry)
 			idf = math.log10(len(lengths) / len(postings_entry))
 			query_tf_weight = 1 + math.log10(query_tf)
