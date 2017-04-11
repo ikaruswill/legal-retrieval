@@ -37,6 +37,20 @@ def load_postings(token, dictionary):
 	postings = utility.load_object(postings_file)
 	return postings
 
+def get_biword_postings(tokens, dictionary):
+	l_token, r_token = *tokens
+	l_postings = load_postings(l_token, dictionary)
+	r_postings = load_postings(r_token, dictionary)
+	posting_pairs = walk_and_retrieve(l_postings, r_postings, key=operator.itemgetter(0))
+	biword_postings = []
+
+	for l_posting, r_posting in posting_pairs:
+		doc_id, l_positions = l_posting
+		r_positions = r_posting[1]
+		position_pairs = walk_and_retrieve(l_positions, r_positions, diff=1)
+		biword_postings.append((doc_id, position_pairs,))
+	return biword_postings
+
 def walk_and_retrieve(l_list, r_list, key=lambda x:x, item=lambda x:x, diff=0):
 	l_list = iter(l_list)
 	r_list = iter(r_list)
