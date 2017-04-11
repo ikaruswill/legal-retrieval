@@ -28,15 +28,6 @@ def index_document(tokens):
 		doc_index[term][1].append(pos)
 	return doc_index
 
-def append_to_block(doc_index, block_index, block_lengths):
-	sum_squares = 0
-	for term, posting in doc_index.items():
-		if term not in block_index:
-			block_index[term] = []
-		block_index[term].append((doc_id, posting[0], posting[1]))
-		sum_squares += math.pow(1 + math.log10(posting[0]), 2)
-	block_lengths[doc_id] = math.sqrt(sum_squares)
-
 def get_length(doc_index):
 	sum_squares = 0
 	for posting in doc_index.values():
@@ -94,7 +85,13 @@ def process_block(file_paths, block_number):
 		logging.debug('[%s,%s] Indexing document', block_number, i)
 		doc_index = index_document(doc[CONTENT_KEY])
 		logging.debug('[%s,%s] Appending to block', block_number, i)
-		append_to_block(doc_index, block_index, block_lengths)
+		sum_squares = 0
+		for term, posting in doc_index.items():
+			if term not in block_index:
+				block_index[term] = []
+			block_index[term].append((doc_id, posting[0], posting[1]))
+			sum_squares += math.pow(1 + math.log10(posting[0]), 2)
+		block_lengths[doc_id] = math.sqrt(sum_squares)
 		i += 1
 
 	logging.info('Saving block #%s', block_number)
