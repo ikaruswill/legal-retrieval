@@ -9,11 +9,6 @@ from utility import ScoreDocIDPair
 
 import postprocesssor
 
-unigram_dict = {}
-bigram_dict = {}
-unigram_lengths = {}
-bigram_lengths = {}
-
 doc_query_cache = {}
 
 POST_PROCESSOR_DIR = './query_exp_results.txt'
@@ -29,24 +24,24 @@ def load_dict(dict_file):
 	return dictionary
 
 
-def get_postings(term_tokens, dictionary):
+def get_postings(term_tokens):
 	if len(term_tokens) == 1:
-		return load_postings(term, dictionary)
+		return load_postings(term)
 	elif len(term_tokens) == 2:
 		return get_biword_postings(term_tokens, dictionary)
 	else:
 		pass
 
 
-def load_postings(token, dictionary):
+def load_postings(token):
 	postings_file.seek(dictionary[token]['offset'])
 	postings = utility.load_object(postings_file)
 	return postings
 
 def get_biword_postings(tokens, dictionary):
 	l_token, r_token = *tokens
-	l_postings = load_postings(l_token, dictionary)
-	r_postings = load_postings(r_token, dictionary)
+	l_postings = load_postings(l_token)
+	r_postings = load_postings(r_token)
 	posting_pairs = walk_and_retrieve(l_postings, r_postings, key=operator.itemgetter(0))
 	biword_postings = []
 
@@ -88,7 +83,7 @@ def strip_and_preprocess(line):
 	return line
 
 
-def vsm(query, dictionary, lengths):
+def vsm(phrase_tokens, lengths):
 	scores = {}
 	query_weights = []
 	for term, query_tf in query.items():
@@ -158,8 +153,7 @@ def handle_boolean_query(query):
 
 
 def main():
-	global unigram_dict, bigram_dict
-	global unigram_lengths, bigram_lengths
+	global dictionary, lengths
 	global postings_file
 
 	postings_file = open(postings_path, 'rb')
@@ -170,8 +164,7 @@ def main():
 	print('dict loaded')
 
 	with open(LENGTHS_PATH, 'rb') as f:
-		unigram_lengths = utility.load_object(f)
-		bigram_lengths = utility.load_object(f)
+		lengths = utility.load_object(f)
 	print('lengths loaded')
 
 	result = []
