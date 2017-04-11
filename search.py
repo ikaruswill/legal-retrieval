@@ -20,18 +20,14 @@ POST_PROCESSOR_DIR = './query_exp_results.txt'
 LENGTHS_PATH = 'lengths.txt'
 
 
-def load_dicts(dict_file):
-	dicts = []
-	current_dict = {}
+def load_dict(dict_file):
+	dictionary = {}
 	offset = 0
-	for term, diff in utility.objects_in(dict_file):
-		if term is None and diff is None:
-			dicts.append(current_dict)
-			current_dict = {}
-		else:
-			offset += diff
-			current_dict[term] = {'offset': offset}
-	return tuple(dicts)
+	for term, diff in utility.load_object(dict_file):
+		offset += diff
+		current_dict[term] = {'offset': offset}
+	return dictionary
+
 
 def get_postings(term_tokens, dictionary):
 	if len(term_tokens) == 1:
@@ -170,7 +166,7 @@ def main():
 	print('posting opened')
 
 	with open(dict_path, 'rb') as f:
-		unigram_dict, bigram_dict = load_dicts(f)
+		dictionary = load_dict(f)
 	print('dict loaded')
 
 	with open(LENGTHS_PATH, 'rb') as f:
