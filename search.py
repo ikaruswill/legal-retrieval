@@ -39,7 +39,7 @@ def load_postings(token):
 	return postings
 
 def get_biword_postings(tokens, dictionary):
-	l_token, r_token = *tokens
+	l_token, r_token = tokens[0], tokens[1]
 	l_postings = load_postings(l_token)
 	r_postings = load_postings(r_token)
 	posting_pairs = walk_and_retrieve(l_postings, r_postings, key=operator.itemgetter(0))
