@@ -220,6 +220,12 @@ if __name__ == '__main__':
 			output_path = a
 		else:
 			assert False, "unhandled option"
+
+	args = utility.load_config()
+	dir_doc = args.get('dir_doc', dir_doc)
+	dict_path = args.get('dict_path', dict_path)
+	postings_path = args.get('postings_path', postings_path)
+
 	if dir_doc is None or dict_path is None or postings_path is None or query_path is None or output_path is None:
 		usage()
 		sys.exit(2)

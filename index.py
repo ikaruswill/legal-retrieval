@@ -214,4 +214,6 @@ if __name__ == '__main__':
 
 	dir_doc += '/' if not dir_doc.endswith('/') else ''
 
+	utility.save_config({'dir_doc': dir_doc, 'dict_path': dict_path, 'postings_path': postings_path})
+
 	main()
