@@ -7,7 +7,20 @@ from nltk.util import ngrams
 from collections import Counter
 import xml.etree.ElementTree
 import pickle
+import json
 import re
+
+# Config persistence path
+config_path = 'config.tmp'
+
+# Config persistence functions
+def save_config(args):
+	with open(config_path, 'w') as f:
+		json.dump(args, f)
+
+def load_config():
+	with open(config_path, 'r') as f:
+		return json.load(f)
 
 # Document extraction variables
 ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
