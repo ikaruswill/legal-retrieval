@@ -5,6 +5,7 @@ import math
 import heapq
 import os
 from utility import ScoreDocIDPair
+from functools import reduce
 
 import postprocesssor
 
@@ -17,6 +18,13 @@ doc_query_cache = {}
 
 POST_PROCESSOR_DIR = './query_exp_results.txt'
 LENGTHS_PATH = 'lengths.txt'
+
+QUERY_EXPANSION_DOCUMENT_LIMIT = 10
+QUERY_EXPANSION_KEYWORD_LIMIT = 10
+
+COMBINE_RANKING = 1
+COMBINE_QUERY = 2
+QUERY_EXPANSION_METHOD = COMBINE_RANKING
 
 
 def load_dicts(dict_file):
@@ -92,42 +100,68 @@ def query_with_doc(doc_id):
 	return doc_query_cache[doc_id]
 
 
+def combine_keyword_sets(keyword_sets):
+	return list(set(reduce(lambda x, y: x + y, keyword_sets)))
+
+
+# TODO: implement this. should process keywords in the right format to use vsm function.
+def query_with_bigram_keywords(keywords):
+	return []
+
+
+# TODO: implement this. should return bigram keywords. rank each terms in the combined docs based on tf idf.
+def extract_keywords_from_docs(doc_ids):
+	result = []
+	return result[:QUERY_EXPANSION_KEYWORD_LIMIT]
+
+
 def get_all_doc_ids(result):
 	return list(map(lambda x: x.doc_id, result))
+
+
+def handle_bigram_query(phrase):
+	print('bigram case')
+	processed_query = process_query_into_ngram(phrase, 2)
+	return vsm(processed_query, bigram_dict, bigram_lengths)
+
+
+def handle_unigram_query(phrase):
+	print('unigram case')
+	processed_query = process_query_into_ngram(phrase, 1)
+	return vsm(processed_query, unigram_dict, unigram_lengths)
 
 
 def handle_phrasal_query(phrase):
 	phrase = strip_and_preprocess(phrase)
 	if len(phrase) >= 2:
-		print('bigram case')
-		processed_query = process_query_into_ngram(phrase, 2)
-		result = vsm(processed_query, bigram_dict, bigram_lengths)
+		result = handle_bigram_query(phrase)
 	else:
-		print('unigram case')
-		processed_query = process_query_into_ngram(phrase, 1)
-		result = vsm(processed_query, unigram_dict, unigram_lengths)
-	return result
+		result = handle_unigram_query(phrase)
+	return result[:QUERY_EXPANSION_DOCUMENT_LIMIT]
 
 
 def handle_boolean_query(query):
 	phrases = query.split('AND')
-	boolean_query_results = []
+	extracted_keyword_sets = []
 	for phrase in phrases:
-		query_expansion_result = []
 		result = handle_phrasal_query(phrase)
-		for index, doc_id in enumerate(get_all_doc_ids(result)):
-			print('\nquery expansion with doc', doc_id, '(', index + 1, ' / ', len(result), ')')
-			query_expansion_result.append(query_with_doc(doc_id))
-			print('query expansion result size: ', len(query_expansion_result[-1]))
-		boolean_query_results.append(query_expansion_result)
+		all_doc_ids = get_all_doc_ids(result)
+		extracted_keyword_sets.append(extract_keywords_from_docs(all_doc_ids))
 
-	# # development purpose since postprocessor.py is much faster than search.py
+	final_ranking = []
+	if QUERY_EXPANSION_METHOD == COMBINE_RANKING:
+		rankings = list(map(lambda extracted_keywords: query_with_bigram_keywords(extracted_keywords), extracted_keyword_sets))
+		final_ranking = postprocesssor.combine_rankings(rankings, postprocesssor.MEAN_RECIPROCAL_RANK_POLICY)
+	elif QUERY_EXPANSION_METHOD == COMBINE_QUERY:
+		combined_keywords = combine_keyword_sets(extracted_keyword_sets)
+		final_ranking = query_with_bigram_keywords(combined_keywords)
+
+	# development purpose since postprocessor.py is much faster than search.py
 	# f = POST_PROCESSOR_DIR
 	# with open(f, 'wb') as f:
-	# 	utility.save_object(boolean_query_results, f)
+	# 	utility.save_object(extracted_keyword_sets, f)
 
-	results = postprocesssor.postprocess(boolean_query_results)
-	return results
+	return final_ranking
 
 
 def main():
@@ -155,9 +189,9 @@ def main():
 			if line != '':
 				result = handle_boolean_query(line)
 
-	output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
-	with open(output_path, 'w') as f:
-		f.write(output)
+	# output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
+	# with open(output_path, 'w') as f:
+	# 	f.write(output)
 
 	postings_file.close()
 	print('completed')
