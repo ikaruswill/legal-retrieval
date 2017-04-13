@@ -25,7 +25,7 @@ QUERY_EXPANSION_KEYWORD_LIMIT = 10
 
 COMBINE_RANKING = 1
 COMBINE_QUERY = 2
-QUERY_EXPANSION_METHOD = COMBINE_RANKING
+QUERY_EXPANSION_METHOD = COMBINE_QUERY
 
 
 def load_dicts(dict_file):
@@ -60,10 +60,11 @@ def preprocess(line):
 	line = utility.stem(line)
 	return line
 
-def vsm(query, dictionary, lengths):
+# return top_k result
+def vsm(query_ngrams, dictionary, lengths, top_k=sys.maxsize):
 	scores = {}
 	query_weights = []
-	for term, query_tf in query.items():
+	for term, query_tf in query_ngrams.items():
 		if term in dictionary:
 			# print('term in dict')
 			postings_entry = get_posting(term, dictionary)
@@ -86,10 +87,10 @@ def vsm(query, dictionary, lengths):
 	scores_heap = [ScoreDocIDPair(-score, doc_id) for doc_id, score in scores.items()]
 	heapq.heapify(scores_heap)
 
-	return [heapq.heappop(scores_heap) for i in range(min(len(scores_heap), QUERY_EXPANSION_DOCUMENT_LIMIT))]
+	return [heapq.heappop(scores_heap) for i in range(min(len(scores_heap), top_k))]
 
 
-def process_query_into_ngram(phrase, n):
+def turn_query_into_ngram(phrase, n):
 	ngrams = utility.generate_ngrams(phrase, n)
 	return utility.count_tokens(ngrams)
 
@@ -110,10 +111,9 @@ def combine_keyword_sets(keyword_sets):
 
 # TODO: implement this. should process keywords in the right format to use vsm function.
 def query_with_bigram_keywords(keywords):
-	return []
+	ngrams = utility.count_tokens(keywords)
+	return vsm(ngrams, bigram_dict, bigram_lengths)
 
-
-# TODO: implement this. should return bigram keywords. rank each terms in the combined docs based on tf idf.
 def extract_keywords_from_docs(doc_ids):
 	result = []
 	combined_doc = ''
@@ -126,10 +126,9 @@ def extract_keywords_from_docs(doc_ids):
 	# tokenize, remove stopwords and punctuations
 	combined_doc = utility.remove_css_text(combined_doc)
 	combined_doc = preprocess(combined_doc)
+	query_ngrams = turn_query_into_ngram(combined_doc, 2)
 
-	processed_query = process_query_into_ngram(combined_doc, 2)
-
-	for term, query_tf in processed_query.items():
+	for term, query_tf in query_ngrams.items():
 		# negative score as the heapq is a min heap, replace doc id to term in this case
 		if term in bigram_dict:
 			postings_entry = get_posting(term, bigram_dict)
@@ -140,7 +139,7 @@ def extract_keywords_from_docs(doc_ids):
 
 	heapq.heapify(result)
 
-	return [heapq.heappop(result) for i in range(min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result)))]
+	return [heapq.heappop(result).term for i in range(min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result)))]
 
 def is_doc_id_in_postings(target_doc_id, postings):
 	for doc_id, _ in postings:
@@ -156,22 +155,22 @@ def get_all_doc_ids(result):
 
 def handle_bigram_query(phrase):
 	print('bigram case')
-	processed_query = process_query_into_ngram(phrase, 2)
-	return vsm(processed_query, bigram_dict, bigram_lengths)
+	ngrams = turn_query_into_ngram(phrase, 2)
+	return vsm(ngrams, bigram_dict, bigram_lengths, QUERY_EXPANSION_DOCUMENT_LIMIT)
 
 
 def handle_unigram_query(phrase):
 	print('unigram case')
-	processed_query = process_query_into_ngram(phrase, 1)
-	return vsm(processed_query, unigram_dict, unigram_lengths)
+	ngrams = turn_query_into_ngram(phrase, 1)
+	return vsm(ngrams, unigram_dict, unigram_lengths, QUERY_EXPANSION_DOCUMENT_LIMIT)
 
 
 def handle_phrasal_query(phrase):
-	phrase = strip_and_preprocess(phrase)
-	if len(phrase) >= 2:
-		return handle_bigram_query(phrase)
+	processed_phrase = strip_and_preprocess(phrase)
+	if len(processed_phrase) >= 2:
+		return handle_bigram_query(processed_phrase)
 	else:
-		return handle_unigram_query(phrase)
+		return handle_unigram_query(processed_phrase)
 
 def handle_boolean_query(query):
 	phrases = query.split('AND')
@@ -179,8 +178,9 @@ def handle_boolean_query(query):
 	for phrase in phrases:
 		result = handle_phrasal_query(phrase)
 		all_doc_ids = get_all_doc_ids(result)
-		extracted_keyword_sets = extracted_keyword_sets + list(set(extract_keywords_from_docs(all_doc_ids)) - set(extracted_keyword_sets))
-	print('\n****extracted****\n', extracted_keyword_sets, '\n')
+		extracted_keyword_sets.append(extract_keywords_from_docs(all_doc_ids))
+	print('\n****extracted keywords****\n', extracted_keyword_sets, '\n')
+
 	final_ranking = []
 	if QUERY_EXPANSION_METHOD == COMBINE_RANKING:
 		rankings = list(map(lambda extracted_keywords: query_with_bigram_keywords(extracted_keywords), extracted_keyword_sets))
@@ -194,7 +194,7 @@ def handle_boolean_query(query):
 	# with open(f, 'wb') as f:
 	# 	utility.save_object(extracted_keyword_sets, f)
 
-	return final_ranking
+	return map(lambda x: x.doc_id, final_ranking)
 
 
 def main():
@@ -221,6 +221,7 @@ def main():
 			print('###QUERY###', line)
 			if line != '':
 				result = handle_boolean_query(line)
+				print('final result', list(result), '\n')
 
 	# output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
 	# with open(output_path, 'w') as f:
