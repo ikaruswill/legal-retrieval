@@ -5,6 +5,7 @@ import math
 import heapq
 import os
 from utility import ScoreDocIDPair
+from utility import ScoreTermPair
 from functools import reduce
 
 import postprocesssor
@@ -118,7 +119,6 @@ def extract_keywords_from_docs(doc_ids):
 	combined_doc = ''
 	for doc_id in doc_ids:
 		file_path = os.path.join(dir_doc, str(doc_id) + '.xml')
-		# TODO: update with cache
 		if os.path.isfile(file_path):
 			doc_content = utility.extract_doc(file_path).get('content')
 			combined_doc += doc_content + ' '
@@ -134,12 +134,11 @@ def extract_keywords_from_docs(doc_ids):
 		if term in bigram_dict:
 			idf = math.log10(len(bigram_lengths) / len(get_posting(term, bigram_dict)))
 			tfidf = (1 + math.log10(query_tf)) * idf
-			result.append(ScoreDocIDPair(-tfidf, term))
+			result.append(ScoreTermPair(-tfidf, term))
 
 	heapq.heapify(result)
 
-	print('extract keywords result', result)
-	return [heapq.heappop(result) for i in min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result))]
+	return [heapq.heappop(result) for i in range(min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result)))]
 
 
 def get_all_doc_ids(result):
@@ -173,8 +172,8 @@ def handle_boolean_query(query):
 	for phrase in phrases:
 		result = handle_phrasal_query(phrase)
 		all_doc_ids = get_all_doc_ids(result)
-		extracted_keyword_sets.append(extract_keywords_from_docs(all_doc_ids))
-
+		extracted_keyword_sets.extend(extract_keywords_from_docs(all_doc_ids))
+	print('extracted', extracted_keyword_sets)
 	final_ranking = []
 	if QUERY_EXPANSION_METHOD == COMBINE_RANKING:
 		rankings = list(map(lambda extracted_keywords: query_with_bigram_keywords(extracted_keywords), extracted_keyword_sets))
@@ -208,15 +207,13 @@ def main():
 		bigram_lengths = utility.load_object(f)
 	print('lengths loaded')
 
-	extract_keywords_from_docs([3527, 3689, 3690, 3691, 3692])
-
-	# result = []
-	# with open(query_path, 'r') as f:
-	# 	for line in f:
-	# 		line = line.strip()
-	# 		print('###QUERY###', line)
-	# 		if line != '':
-	# 			result = handle_boolean_query(line)
+	result = []
+	with open(query_path, 'r') as f:
+		for line in f:
+			line = line.strip()
+			print('###QUERY###', line)
+			if line != '':
+				result = handle_boolean_query(line)
 
 	# output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
 	# with open(output_path, 'w') as f:
