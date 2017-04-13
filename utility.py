@@ -121,3 +121,23 @@ class ScoreDocIDPair(object):
 
 	def __str__(self):
 		return '%6s : %.10f' % (self.doc_id, self.score)
+
+class ScoreTermPair(object):
+	def __init__(self, score, term):
+		self.score = score
+		self.term = term
+
+	def __lt__(self, other):
+		return self.score < other.score
+
+	def __repr__(self):
+		return '%6s : %.10f' % (self.term, self.score)
+
+	def __str__(self):
+		return '%6s : %.10f' % (self.term, self.score)
+
+	def __eq__(self, other):
+		return self.term == other.term
+
+	def __hash__(self):
+		return hash(self.term)
