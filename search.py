@@ -86,7 +86,7 @@ def vsm(query, dictionary, lengths):
 	scores_heap = [ScoreDocIDPair(-score, doc_id) for doc_id, score in scores.items()]
 	heapq.heapify(scores_heap)
 
-	return [heapq.heappop(scores_heap) for i in range(len(scores_heap))]
+	return [heapq.heappop(scores_heap) for i in range(min(len(scores_heap), QUERY_EXPANSION_DOCUMENT_LIMIT))]
 
 
 def process_query_into_ngram(phrase, n):
@@ -169,11 +169,9 @@ def handle_unigram_query(phrase):
 def handle_phrasal_query(phrase):
 	phrase = strip_and_preprocess(phrase)
 	if len(phrase) >= 2:
-		result = handle_bigram_query(phrase)
+		return handle_bigram_query(phrase)
 	else:
-		result = handle_unigram_query(phrase)
-	return result[:QUERY_EXPANSION_DOCUMENT_LIMIT]
-
+		return handle_unigram_query(phrase)
 
 def handle_boolean_query(query):
 	phrases = query.split('AND')
