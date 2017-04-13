@@ -135,3 +135,9 @@ class ScoreTermPair(object):
 
 	def __str__(self):
 		return '%6s : %.10f' % (self.term, self.score)
+
+	def __eq__(self, other):
+		return self.term == other.term
+
+	def __hash__(self):
+		return hash(self.term)

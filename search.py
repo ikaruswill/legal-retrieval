@@ -132,14 +132,23 @@ def extract_keywords_from_docs(doc_ids):
 	for term, query_tf in processed_query.items():
 		# negative score as the heapq is a min heap, replace doc id to term in this case
 		if term in bigram_dict:
-			idf = math.log10(len(bigram_lengths) / len(get_posting(term, bigram_dict)))
-			tfidf = (1 + math.log10(query_tf)) * idf
+			postings_entry = get_posting(term, bigram_dict)
+			query_df = sum([1 if is_doc_id_in_postings(doc_id, postings_entry) else 0 for doc_id in doc_ids]) / QUERY_EXPANSION_DOCUMENT_LIMIT
+			idf = math.log10(len(bigram_lengths) / len(postings_entry))
+			tfidf = (1 + math.log10(query_tf)) * idf * query_df
 			result.append(ScoreTermPair(-tfidf, term))
 
 	heapq.heapify(result)
 
 	return [heapq.heappop(result) for i in range(min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result)))]
 
+def is_doc_id_in_postings(target_doc_id, postings):
+	for doc_id, _ in postings:
+		if doc_id == target_doc_id:
+			return True
+		elif +doc_id > +target_doc_id:
+			return False
+	return False
 
 def get_all_doc_ids(result):
 	return list(map(lambda x: x.doc_id, result))
@@ -172,8 +181,8 @@ def handle_boolean_query(query):
 	for phrase in phrases:
 		result = handle_phrasal_query(phrase)
 		all_doc_ids = get_all_doc_ids(result)
-		extracted_keyword_sets.extend(extract_keywords_from_docs(all_doc_ids))
-	print('extracted', extracted_keyword_sets)
+		extracted_keyword_sets = extracted_keyword_sets + list(set(extract_keywords_from_docs(all_doc_ids)) - set(extracted_keyword_sets))
+	print('\n****extracted****\n', extracted_keyword_sets, '\n')
 	final_ranking = []
 	if QUERY_EXPANSION_METHOD == COMBINE_RANKING:
 		rankings = list(map(lambda extracted_keywords: query_with_bigram_keywords(extracted_keywords), extracted_keyword_sets))
