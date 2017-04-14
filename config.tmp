@@ -1,1 +1,1 @@
-{"dir_doc": "./intelllex/", "postings_path": "postings.txt", "dict_path": "dictionary.txt"}
+{"dir_doc": "./intelllex/", "postings_path": "postings.txt", "dict_path": "dictionary.txt", "lengths_path": "lengths.txt"}
