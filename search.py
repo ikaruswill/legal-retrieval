@@ -15,10 +15,6 @@ bigram_lengths = {}
 
 doc_query_cache = {}
 
-
-# Extra file that we generated from index.py, this file contains the euclidean norm of the documents
-LENGTHS_PATH = 'lengths.txt'
-
 # Maximum number of documents used to run the query expansion
 QUERY_EXPANSION_DOCUMENT_LIMIT = 10
 
@@ -269,7 +265,7 @@ def main():
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict = load_dicts(f)
 
-	with open(LENGTHS_PATH, 'rb') as f:
+	with open(lengths_path, 'rb') as f:
 		unigram_lengths = utility.load_object(f)
 		bigram_lengths = utility.load_object(f)
 
@@ -313,8 +309,9 @@ if __name__ == '__main__':
 	dir_doc = args.get('dir_doc')
 	dict_path = args.get('dict_path', dict_path)
 	postings_path = args.get('postings_path', postings_path)
+	lengths_path = args.get('lengths_path')
 
-	if dir_doc is None or dict_path is None or postings_path is None or query_path is None or output_path is None:
+	if dict_path is None or postings_path is None or query_path is None or output_path is None:
 		usage()
 		sys.exit(2)
 
