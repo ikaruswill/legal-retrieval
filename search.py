@@ -22,6 +22,7 @@ LENGTHS_PATH = 'lengths.txt'
 
 QUERY_EXPANSION_DOCUMENT_LIMIT = 10
 QUERY_EXPANSION_KEYWORD_LIMIT = 10
+QUERY_ENHANCE = 10
 
 COMBINE_RANKING = 1
 COMBINE_QUERY = 2
@@ -114,6 +115,7 @@ def query_with_bigram_keywords(keywords):
 	ngrams = utility.count_tokens(keywords)
 	return vsm(ngrams, bigram_dict, bigram_lengths)
 
+
 def extract_keywords_from_docs(doc_ids):
 	result = []
 	combined_doc = ''
@@ -141,6 +143,7 @@ def extract_keywords_from_docs(doc_ids):
 
 	return [heapq.heappop(result).term for i in range(min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result)))]
 
+
 def is_doc_id_in_postings(target_doc_id, postings):
 	for doc_id, _ in postings:
 		if doc_id == target_doc_id:
@@ -148,6 +151,7 @@ def is_doc_id_in_postings(target_doc_id, postings):
 		elif +doc_id > +target_doc_id:
 			return False
 	return False
+
 
 def get_all_doc_ids(result):
 	return list(map(lambda x: x.doc_id, result))
@@ -172,28 +176,28 @@ def handle_phrasal_query(phrase):
 	else:
 		return handle_unigram_query(processed_phrase)
 
+
+def convert_phrases_into_bigrams(phrases):
+	results = []
+	for phrase in phrases:
+		processed_phrase = strip_and_preprocess(phrase)
+		if len(processed_phrase) >= 2:
+			results += list(dict(turn_query_into_ngram(processed_phrase, 2)).keys())
+	return results
+
+
 def handle_boolean_query(query):
 	phrases = query.split('AND')
-	extracted_keyword_sets = []
-	for phrase in phrases:
-		result = handle_phrasal_query(phrase)
-		all_doc_ids = get_all_doc_ids(result)
-		extracted_keyword_sets.append(extract_keywords_from_docs(all_doc_ids))
-	print('\n****extracted keywords****\n', extracted_keyword_sets, '\n')
 
-	final_ranking = []
-	if QUERY_EXPANSION_METHOD == COMBINE_RANKING:
-		rankings = list(map(lambda extracted_keywords: query_with_bigram_keywords(extracted_keywords), extracted_keyword_sets))
-		final_ranking = postprocesssor.combine_rankings(rankings, postprocesssor.MEAN_RECIPROCAL_RANK_POLICY)
-	elif QUERY_EXPANSION_METHOD == COMBINE_QUERY:
-		combined_keywords = combine_keyword_sets(extracted_keyword_sets)
-		final_ranking = query_with_bigram_keywords(combined_keywords)
+	keywords = convert_phrases_into_bigrams(phrases)
+	query_result = query_with_bigram_keywords(keywords)
+	doc_ids = get_all_doc_ids(query_result)
+	extended_keywords = extract_keywords_from_docs(doc_ids)
+	for i in range(0, QUERY_ENHANCE):
+		extended_keywords += keywords
+	final_ranking = query_with_bigram_keywords(extended_keywords)
 
-	# development purpose since postprocessor.py is much faster than search.py
-	# f = POST_PROCESSOR_DIR
-	# with open(f, 'wb') as f:
-	# 	utility.save_object(extracted_keyword_sets, f)
-
+	final_ranking = postprocesssor.sort_by_boolean_query(final_ranking, phrases)
 	return map(lambda x: x.doc_id, final_ranking)
 
 
@@ -221,7 +225,7 @@ def main():
 			print('###QUERY###', line)
 			if line != '':
 				result = handle_boolean_query(line)
-				print('final result', list(result), '\n')
+				print('final result', list(result)[:100], '\n')
 
 	# output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
 	# with open(output_path, 'w') as f:

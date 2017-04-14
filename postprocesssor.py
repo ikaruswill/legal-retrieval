@@ -1,6 +1,7 @@
 import heapq
 
 import utility
+import os
 from utility import ScoreDocIDPair
 
 
@@ -13,6 +14,31 @@ QUERY_EXPANSION_RANKING_POLICY = MEAN_RECIPROCAL_RANK_POLICY
 BOOLEAN_QUERY_RANKING_POLICY = MEAN_RECIPROCAL_RANK_POLICY
 
 SAMPLE_SIZE = 20
+
+
+def have_all_keywords(doc_id, keywords):
+	file_path = os.path.join('C:/Users/bsmmo/Desktop/ubuntu/cs3245/ass4/documents/' + str(doc_id) + '.xml')
+	entities = utility.extract_doc(file_path)
+	doc_content = entities.get('content')
+	for keyword in keywords:
+		if keyword not in doc_content:
+			return 0
+	return 1
+
+
+def sort_by_boolean_query(ranking, keywords):
+	keywords = list(map(lambda x: x.strip('" '), keywords))
+	result = []
+	for pair in ranking:
+		doc_id = pair.doc_id
+		if doc_id == 3046698 or doc_id == 2211001:
+			print(doc_id, have_all_keywords(doc_id, keywords))
+		result.append([pair, have_all_keywords(doc_id, keywords)])
+	print(result[:10])
+	result.sort(key=lambda x: -x[1])
+	print(result[:10])
+	result = list(map(lambda x: x[0], result))
+	return result
 
 
 # averaging
