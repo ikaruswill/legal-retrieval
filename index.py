@@ -163,7 +163,7 @@ def main():
 
 	for dirpath, dirnames, filenames in os.walk(dir_doc):
 		logging.info('Collection cardinality is: {:,}'.format(len(filenames)))
-		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.089*len(filenames)))
+		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.055*len(filenames)))
 		logging.info('Models set: {!r}'.format(NGRAM_KEYS))
 		# Files read in order of DocID
 		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename) if filename not in FILE_BLACKLIST]
