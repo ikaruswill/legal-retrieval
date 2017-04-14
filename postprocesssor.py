@@ -17,7 +17,7 @@ SAMPLE_SIZE = 20
 
 
 def have_all_keywords(doc_id, keywords):
-	file_path = os.path.join('C:/Users/bsmmo/Desktop/ubuntu/cs3245/ass4/documents/' + str(doc_id) + '.xml')
+	file_path = os.path.join(utility.load_config().get('dir_doc'), str(doc_id) + '.xml')
 	entities = utility.extract_doc(file_path)
 	doc_content = entities.get('content')
 	for keyword in keywords:
@@ -31,12 +31,12 @@ def sort_by_boolean_query(ranking, keywords):
 	result = []
 	for pair in ranking:
 		doc_id = pair.doc_id
-		if doc_id == 3046698 or doc_id == 2211001:
-			print(doc_id, have_all_keywords(doc_id, keywords))
+		# if doc_id == 3046698 or doc_id == 2211001:
+			# print(doc_id, have_all_keywords(doc_id, keywords))
 		result.append([pair, have_all_keywords(doc_id, keywords)])
-	print(result[:10])
+	# print(result[:10])
 	result.sort(key=lambda x: -x[1])
-	print(result[:10])
+	# print(result[:10])
 	result = list(map(lambda x: x[0], result))
 	return result
 
@@ -50,14 +50,14 @@ def apply_ranking_policy(processed_record, number_of_queries, policy):
 	elif policy == MEAN_RECIPROCAL_RANK_POLICY:
 		processed_record['score_id_pair'].score = processed_record['mrr'] * -1  # bc of heapq
 		processed_record['score_id_pair'].score /= number_of_queries  # will not affect the ranking but by definition
-	else:
-		print("Unknown policy selected. SUMMATION POLICY applied.")
+	# else:
+		# print("Unknown policy selected. SUMMATION POLICY applied.")
 	return processed_record['score_id_pair']
 
 
 def combine_rankings(rankings, policy):
 	number_of_queries = len(rankings)
-	print('# of rankings combined: ', number_of_queries)
+	# print('# of rankings combined: ', number_of_queries)
 	processed_records = {}
 	for ranking in rankings:
 		for rank, score_doc_id_pair in enumerate(ranking):
