@@ -13,10 +13,12 @@ import re
 # Config persistence path
 config_path = 'config.tmp'
 
+
 # Config persistence functions
 def save_config(args):
 	with open(config_path, 'w') as f:
 		json.dump(args, f)
+
 
 def load_config():
 	with open(config_path, 'r') as f:
@@ -25,9 +27,11 @@ def load_config():
 # Document extraction variables
 ignored_tag_names = set(['show', 'hide_url', 'hide_blurb', 'modified', 'date_modified', '_version_'])
 
+
 # Document extraction functions
 def str2bool(bool_str):
 	return bool_str.lower() in ("yes", "true", "t", "1")
+
 
 def parse_child(child):
 	if child.tag == 'str':
@@ -48,6 +52,7 @@ def parse_child(child):
 	else:
 		exit('Unsupported tag: ', child.tag)
 
+
 def extract_doc(file_path):
 	doc = {}
 	root = xml.etree.ElementTree.parse(file_path).getroot()
@@ -58,35 +63,44 @@ def extract_doc(file_path):
 
 	return doc
 
+
 # Preprocessing variables
 stopword_set = set(stopwords.words('english'))
 punctuation_set = set(punctuation)
 wnl = WordNetLemmatizer()
 stemmer = PorterStemmer()
 
+
 # Preprocessing functions, in order of application
 def tokenize(string):
 	return word_tokenize(string.lower())
 
+
 def remove_css_text(string):
 	return re.sub('[\.|#|@][\w\.\-]+[ \t]*[\w\.\-]+{.+} *$', '', string, flags=re.DOTALL|re.MULTILINE)
+
 
 def remove_punctuations(tokens):
 	return [token for token in tokens if token not in punctuation_set]
 
+
 def remove_stopwords(tokens):
 	return [token for token in tokens if token not in stopword_set]
+
 
 def lemmatize(tokens):
 	return [wnl.lemmatize(token) for token in tokens]
 
+
 def stem(tokens):
 	return [stemmer.stem(token) for token in tokens]
+
 
 def generate_ngrams(tokens, n, pad=False, start_sym='<s>', end_sym='</s>'):
 	if n == 1:
 		return tokens
 	return [' '.join(ngram) for ngram in ngrams(tokens, n, pad_left=pad, pad_right=pad, left_pad_symbol=start_sym, right_pad_symbol=end_sym)]
+
 
 def count_tokens(tokens):
 	return Counter(tokens)
@@ -98,8 +112,10 @@ def save_object(obj, f):
 	f.write(s_obj)
 	return len(s_obj)
 
+
 def load_object(f):
 	return pickle.load(f)
+
 
 def objects_in(f):
 	while True:
@@ -108,6 +124,10 @@ def objects_in(f):
 		except EOFError:
 			return
 
+
+# Store document ID and score in a pair, mainly used for Vector Space Model.
+# Custom __lt__ implementation that allows a list of this object sort according to score and sort
+# according to doc_id if score is identical.
 class ScoreDocIDPair(object):
 	def __init__(self, score, doc_id):
 		self.score = score
@@ -122,6 +142,9 @@ class ScoreDocIDPair(object):
 	def __str__(self):
 		return '%6s : %.10f' % (self.doc_id, self.score)
 
+
+# Store document ID and term in a pair, mainly used for keyword extractions from documents set.
+# Custom __lt__ implementation that allows a list of this object sort according to score regardless of the term.
 class ScoreTermPair(object):
 	def __init__(self, score, term):
 		self.score = score
