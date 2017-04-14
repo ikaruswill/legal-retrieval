@@ -236,19 +236,17 @@ def main():
 
 
 def usage():
-	print("usage: " + sys.argv[0] + "-i directory-of-documents -d dictionary-file -p postings-file -q file-of-queries -l lengths-file -o output-file-of-results")
+	print("usage: " + sys.argv[0] + "-d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
 
 if __name__ == '__main__':
-	dir_doc = dict_path = postings_path = query_path = output_path = None
+	dict_path = postings_path = query_path = output_path = None
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:q:o:l:')
+		opts, args = getopt.getopt(sys.argv[1:], 'd:p:q:o:')
 	except getopt.GetoptError as err:
 		usage()
 		sys.exit(2)
 	for o, a in opts:
-		if o == '-i':
-			dir_doc = a
-		elif o == '-d':
+		if o == '-d':
 			dict_path = a
 		elif o == '-p':
 			postings_path = a
@@ -260,7 +258,7 @@ if __name__ == '__main__':
 			assert False, "unhandled option"
 
 	args = utility.load_config()
-	dir_doc = args.get('dir_doc', dir_doc)
+	dir_doc = args.get('dir_doc')
 	dict_path = args.get('dict_path', dict_path)
 	postings_path = args.get('postings_path', postings_path)
 
