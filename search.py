@@ -158,13 +158,13 @@ def get_all_doc_ids(result):
 
 
 def handle_bigram_query(phrase):
-	print('bigram case')
+	# print('bigram case')
 	ngrams = turn_query_into_ngram(phrase, 2)
 	return vsm(ngrams, bigram_dict, bigram_lengths, QUERY_EXPANSION_DOCUMENT_LIMIT)
 
 
 def handle_unigram_query(phrase):
-	print('unigram case')
+	# print('unigram case')
 	ngrams = turn_query_into_ngram(phrase, 1)
 	return vsm(ngrams, unigram_dict, unigram_lengths, QUERY_EXPANSION_DOCUMENT_LIMIT)
 
@@ -207,32 +207,32 @@ def main():
 	global postings_file
 
 	postings_file = open(postings_path, 'rb')
-	print('posting opened')
+	# print('posting opened')
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict = load_dicts(f)
-	print('dict loaded')
+	# print('dict loaded')
 
 	with open(LENGTHS_PATH, 'rb') as f:
 		unigram_lengths = utility.load_object(f)
 		bigram_lengths = utility.load_object(f)
-	print('lengths loaded')
+	# print('lengths loaded')
 
 	result = []
 	with open(query_path, 'r') as f:
 		for line in f:
 			line = line.strip()
-			print('###QUERY###', line)
+			# print('###QUERY###', line)
 			if line != '':
 				result = handle_boolean_query(line)
-				print('final result', list(result)[:100], '\n')
+				# print('final result', list(result)[:100], '\n')
 
-	# output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
-	# with open(output_path, 'w') as f:
-	# 	f.write(output)
+	output = ' '.join(list(map(lambda x: str(x), result)))
+	with open(output_path, 'w') as f:
+		f.write(output)
 
 	postings_file.close()
-	print('completed')
+	# print('completed')
 
 
 def usage():
