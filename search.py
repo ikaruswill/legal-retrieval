@@ -189,13 +189,23 @@ def convert_phrases_into_bigrams(phrases):
 def handle_boolean_query(query):
 	phrases = query.split('AND')
 
-	keywords = convert_phrases_into_bigrams(phrases)
-	query_result = query_with_bigram_keywords(keywords)
-	doc_ids = get_all_doc_ids(query_result)
-	extended_keywords = extract_keywords_from_docs(doc_ids)
-	for i in range(0, QUERY_ENHANCE):
-		extended_keywords += keywords
-	final_ranking = query_with_bigram_keywords(extended_keywords)
+	extracted_keyword_sets = []
+	for phrase in phrases:
+		result = handle_phrasal_query(phrase)
+		all_doc_ids = get_all_doc_ids(result)
+		extracted_keyword_sets.append(extract_keywords_from_docs(all_doc_ids))
+	# print('\n****extracted keywords****\n', extracted_keyword_sets, '\n')
+
+	final_ranking = []
+	if QUERY_EXPANSION_METHOD == COMBINE_RANKING:
+		rankings = list(
+			map(lambda extracted_keywords: query_with_bigram_keywords(extracted_keywords), extracted_keyword_sets))
+		final_ranking = postprocesssor.combine_rankings(rankings, postprocesssor.MEAN_RECIPROCAL_RANK_POLICY)
+	elif QUERY_EXPANSION_METHOD == COMBINE_QUERY:
+		combined_keywords = combine_keyword_sets(extracted_keyword_sets)
+		for i in range(0, QUERY_ENHANCE):
+			combined_keywords += convert_phrases_into_bigrams(phrases)
+		final_ranking = query_with_bigram_keywords(combined_keywords)
 
 	final_ranking = postprocesssor.sort_by_boolean_query(final_ranking, phrases)
 	return map(lambda x: x.doc_id, final_ranking)
