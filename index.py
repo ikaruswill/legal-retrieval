@@ -21,12 +21,22 @@ NGRAM_KEYS = ['unigram', 'bigram']
 LENGTHS_PATH = 'lengths.txt'
 
 def get_length(counted_tokens):
+	"""
+	Calculate the Euclidean norm of the document vector formed from the Bag-of-words
+
+	Args:
+		counted_tokens: dict of term:frequency items
+	
+	Returns:
+		The Euclidean norm of the document vector
+	"""
 	sum_squares = 0
 	for term, freq in counted_tokens.items():
 		sum_squares += math.pow(1 + math.log10(freq), 2)
 	return math.sqrt(sum_squares)
 
 def get_int_filename(filename):
+	""" Get the integer value of a filename """
 	name = os.path.splitext(filename)[0]
 	try:
 		return int(name)
@@ -34,12 +44,31 @@ def get_int_filename(filename):
 		return 0
 
 def get_block_folder_path(tag=''):
+	"""
+	Get the absolute block folder path that is associated to the specified tag
+
+	Args:
+		tag: The tag used to identify the type of data stored in the block
+	
+	Returns:
+		The absolute path to the block folder
+	"""
 	script_path = os.path.dirname(os.path.realpath(__file__))
 	block_folder = TMP_PATH
 	block_folder += tag if tag == '' or tag.endswith('/') else tag + '/'
 	return os.path.join(script_path, block_folder)
 
 def get_block_path(tag, block_number):
+	"""
+	Get the absolute path of a specific block identified by a tag and its unique identifier
+
+	Args:
+		tag: The tag used to identify the type of data stored in the block
+		block_number: The unique identifier of the block
+	
+	Returns:
+		The absolute path to the block
+	"""
 	block_folder_path = get_block_folder_path(tag)
 	if not os.path.exists(block_folder_path):
 		os.makedirs(block_folder_path)
@@ -47,12 +76,20 @@ def get_block_path(tag, block_number):
 
 def deque_chunks(l, n):
 	chunks = []
-	"""Yield successive n-sized chunks from l."""
+	""" Yield successive n-sized chunks from l. """
 	for i in range(0, len(l), n):
 		chunks.append(collections.deque(l[i:i + n]))
 	return chunks
 
 def process_block(file_paths, block_number):
+	"""
+	Preprocess a block defined by a number of file paths and a unique block identifier
+	and save them term-at-a-time to a temporary block file.
+
+	Args:
+		file_paths: List of document file paths assigned to the block
+		block_number: Unique identifier for the block
+	"""
 	logging.info('Processing block #%s', block_number)
 	block_index = {key:{} for key in NGRAM_KEYS}
 	block_lengths = {key:{} for key in NGRAM_KEYS}
@@ -127,7 +164,9 @@ def main():
 		logging.info('Collection cardinality is: {:,}'.format(len(filenames)))
 		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.089*len(filenames)))
 		logging.info('Models set: {!r}'.format(NGRAM_KEYS))
-		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)] # Files read in order of DocID
+		# Files read in order of DocID
+		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)]
+		# Divide files into blocks
 		filepath_blocks = deque_chunks(filepaths, BLOCK_SIZE)
 		block_count = len(filepath_blocks)
 
@@ -135,7 +174,7 @@ def main():
 		with multiprocessing.Pool(PROCESS_COUNT) as pool:
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
-		# Merge step
+		# Block merging step
 		logging.info('Merging blocks')
 		size = 0
 		for ngram_key in NGRAM_KEYS:
@@ -145,7 +184,7 @@ def main():
 				filenames.sort(key=get_int_filename)
 				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
 				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
-				# Merge blocks
+				# Merge blocks with lazy loading
 				sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
 				logging.debug('Processing %s merge heap', ngram_key)
