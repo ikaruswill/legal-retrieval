@@ -18,6 +18,7 @@ BLOCK_EXT = '.blk'
 TMP_PATH = 'tmp/'
 CONTENT_KEY = 'content'
 NGRAM_KEYS = ['unigram', 'bigram']
+FILE_BLACKLIST = set(['3074605.xml', '3074613.xml'])
 LENGTHS_PATH = 'lengths.txt'
 
 def get_length(counted_tokens):
@@ -165,7 +166,7 @@ def main():
 		logging.info('Index size is estimated to be: {:,.1f}MB'.format(0.089*len(filenames)))
 		logging.info('Models set: {!r}'.format(NGRAM_KEYS))
 		# Files read in order of DocID
-		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename)]
+		filepaths = [os.path.join(dirpath, filename) for filename in sorted(filenames, key=get_int_filename) if filename not in FILE_BLACKLIST]
 		# Divide files into blocks
 		filepath_blocks = deque_chunks(filepaths, BLOCK_SIZE)
 		block_count = len(filepath_blocks)
