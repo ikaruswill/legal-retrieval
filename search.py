@@ -8,8 +8,6 @@ from utility import ScoreDocIDPair
 from utility import ScoreTermPair
 from functools import reduce
 
-import postprocesssor
-
 unigram_dict = {}
 bigram_dict = {}
 unigram_lengths = {}
@@ -17,18 +15,21 @@ bigram_lengths = {}
 
 doc_query_cache = {}
 
-POST_PROCESSOR_DIR = './query_exp_results.txt'
+
+# Extra file that we generated from index.py, this file contains the euclidean norm of the documents
 LENGTHS_PATH = 'lengths.txt'
 
+# Maximum number of documents used to run the query expansion
 QUERY_EXPANSION_DOCUMENT_LIMIT = 10
+
+# Maximum number of keywords extracted from a set of documents
 QUERY_EXPANSION_KEYWORD_LIMIT = 10
+
+# Number of times the bigram terms from the initial query is appended the list of extracted keywords
 QUERY_ENHANCE = 10
 
-COMBINE_RANKING = 1
-COMBINE_QUERY = 2
-QUERY_EXPANSION_METHOD = COMBINE_QUERY
 
-
+# Given a File object and load unigram dictionary and bigram dictionary
 def load_dicts(dict_file):
 	dicts = []
 	current_dict = {}
@@ -43,17 +44,21 @@ def load_dicts(dict_file):
 	return tuple(dicts)
 
 
+# Given term and unigram/bigram dictionary, return postings of the term if exists
 def get_posting(term, dictionary):
 	postings_file.seek(dictionary[term]['offset'])
 	posting = utility.load_object(postings_file)
 	return posting
 
 
+# Remove space and double quote, then run preprocess(line), finally return result
 def strip_and_preprocess(line):
 	line = line.strip('" ')
 	line = preprocess(line)
 	return line
 
+
+# Tokenize a string, remove punctuations and stopwords, then stem each token. Return a list of stemmed words
 def preprocess(line):
 	line = utility.tokenize(line)
 	line = utility.remove_punctuations(line)
@@ -61,7 +66,10 @@ def preprocess(line):
 	line = utility.stem(line)
 	return line
 
-# return top_k result
+
+# Given n-grams with count, unigram/bigram dictionary, unigram/bigram lengths (euclidean norm of documents)
+# and top_k which indicate the number of desired documents in the final result.
+# This method evaluate using vector space model LNC.LTC and return a list of ScoreDocIDPair
 def vsm(query_ngrams, dictionary, lengths, top_k=sys.maxsize):
 	scores = {}
 	query_weights = []
@@ -84,18 +92,23 @@ def vsm(query_ngrams, dictionary, lengths, top_k=sys.maxsize):
 	for doc_id, score in scores.items():
 		scores[doc_id] /= lengths[doc_id] * query_l2_norm
 
-	#heapq by default is min heap, so * -1 to all score value
+	# heapq by default is min heap, so * -1 to all score value
 	scores_heap = [ScoreDocIDPair(-score, doc_id) for doc_id, score in scores.items()]
 	heapq.heapify(scores_heap)
 
 	return [heapq.heappop(scores_heap) for i in range(min(len(scores_heap), top_k))]
 
 
+# Given a list of stemmed words and a number n to indicate the target gram,
+# for i.e. if n is 1, unigram is generated, if n is 2, bigram is generated.
+# Returning result include the counts of each n-gram term
 def turn_query_into_ngram(phrase, n):
 	ngrams = utility.generate_ngrams(phrase, n)
 	return utility.count_tokens(ngrams)
 
 
+# #DEPRECATED Initially we do query expansion using the whole document content as a query.
+# This method return a list of ranked document ids
 def query_with_doc(doc_id):
 	file_path = os.path.join(dir_doc, str(doc_id) + '.xml')
 	if doc_id in doc_query_cache:
@@ -106,16 +119,24 @@ def query_with_doc(doc_id):
 	return doc_query_cache[doc_id]
 
 
+# Given a list of list of keywords, return the union of all the list of keywords
+# i.e. a list of non duplicated keywords
 def combine_keyword_sets(keyword_sets):
 	return list(set(reduce(lambda x, y: x + y, keyword_sets)))
 
 
-# TODO: implement this. should process keywords in the right format to use vsm function.
+# Convert keywords into n-grams with count,
+# in order to call vsm(query_ngrams, dictionary, lengths, top_k=sys.maxsize) method.
 def query_with_bigram_keywords(keywords):
 	ngrams = utility.count_tokens(keywords)
 	return vsm(ngrams, bigram_dict, bigram_lengths)
 
 
+# Given a list of document IDs, combine all the document content into one string,
+# preprocess it into a list of stemmed words, then convert it into n-grams with counts, N.
+# Walk through all the terms in the n-grams, assign a score with formula
+# 	[TERM_FREQ_IN_N] * [INV_DOC_FREQ_OF_CORPUS] * [DOC_FREQ_OF_TERM_IN_N].
+# Return top QUERY_EXPANSION_KEYWORD_LIMIT number of keywords.
 def extract_keywords_from_docs(doc_ids):
 	result = []
 	combined_doc = ''
@@ -144,6 +165,7 @@ def extract_keywords_from_docs(doc_ids):
 	return [heapq.heappop(result).term for i in range(min(QUERY_EXPANSION_KEYWORD_LIMIT, len(result)))]
 
 
+# Given a document ID and a postings list, check if the document ID appears in the postings list
 def is_doc_id_in_postings(target_doc_id, postings):
 	for doc_id, _ in postings:
 		if doc_id == target_doc_id:
@@ -153,22 +175,25 @@ def is_doc_id_in_postings(target_doc_id, postings):
 	return False
 
 
+# Given a list of ScoreDocIDPair, return a list of document ID (in other words, remove the score)
 def get_all_doc_ids(result):
 	return list(map(lambda x: x.doc_id, result))
 
 
+# Given a list of stemmed words, turn it into bigrams with count and evaluate with vector space model
 def handle_bigram_query(phrase):
-	print('bigram case')
 	ngrams = turn_query_into_ngram(phrase, 2)
 	return vsm(ngrams, bigram_dict, bigram_lengths, QUERY_EXPANSION_DOCUMENT_LIMIT)
 
 
+# Given a list of stemmed words, turn it into unigram with count and evaluate with vector space model
 def handle_unigram_query(phrase):
-	print('unigram case')
 	ngrams = turn_query_into_ngram(phrase, 1)
 	return vsm(ngrams, unigram_dict, unigram_lengths, QUERY_EXPANSION_DOCUMENT_LIMIT)
 
 
+# Given a phrase, strip and preprocess it into a list of stemmed words,
+# decide whether handle it using handle_unigram_query(phrase) or handle_bigram_query(phrase)
 def handle_phrasal_query(phrase):
 	processed_phrase = strip_and_preprocess(phrase)
 	if len(processed_phrase) >= 2:
@@ -177,6 +202,7 @@ def handle_phrasal_query(phrase):
 		return handle_unigram_query(processed_phrase)
 
 
+# Given a list of phrases, turn all of them into a bigram if their word count is bigger than 1 and return the result
 def convert_phrases_into_bigrams(phrases):
 	results = []
 	for phrase in phrases:
@@ -186,18 +212,50 @@ def convert_phrases_into_bigrams(phrases):
 	return results
 
 
+# Check whether the document has all the keywords. Return 0 if doesn't. 1 if has.
+# Return Integer for ease of sorting.
+def have_all_keywords(doc_id, keywords):
+	file_path = os.path.join(utility.load_config().get('dir_doc'), str(doc_id) + '.xml')
+	entities = utility.extract_doc(file_path)
+	doc_content = entities.get('content')
+	for keyword in keywords:
+		if keyword not in doc_content:
+			return 0
+	return 1
+
+
+# Sort boolean query ranking to prioritize documents with all the query keywords
+def sort_by_boolean_query(ranking, keywords):
+	keywords = list(map(lambda x: x.strip('" '), keywords))
+	result = []
+	for pair in ranking:
+		doc_id = pair.doc_id
+		result.append([pair, have_all_keywords(doc_id, keywords)])
+	result.sort(key=lambda x: -x[1])
+	result = list(map(lambda x: x[0], result))
+	return result
+
+
+# Given original query string with ‘AND’, split it into multiple phrases.
+# Each phrase is evaluated with handle_phrasal_query(phrase).
+# Keywords are extracted using intermediate result, then used to make query expansion.
+# Final result is sorted against the occurrences of all original phrases.
 def handle_boolean_query(query):
 	phrases = query.split('AND')
 
-	keywords = convert_phrases_into_bigrams(phrases)
-	query_result = query_with_bigram_keywords(keywords)
-	doc_ids = get_all_doc_ids(query_result)
-	extended_keywords = extract_keywords_from_docs(doc_ids)
-	for i in range(0, QUERY_ENHANCE):
-		extended_keywords += keywords
-	final_ranking = query_with_bigram_keywords(extended_keywords)
+	extracted_keyword_sets = []
+	for phrase in phrases:
+		result = handle_phrasal_query(phrase)
+		all_doc_ids = get_all_doc_ids(result)
+		extracted_keyword_sets.append(extract_keywords_from_docs(all_doc_ids))
 
-	final_ranking = postprocesssor.sort_by_boolean_query(final_ranking, phrases)
+	combined_keywords = combine_keyword_sets(extracted_keyword_sets)
+	query_bigram_terms = convert_phrases_into_bigrams(phrases)
+	for i in range(0, QUERY_ENHANCE):
+		combined_keywords += query_bigram_terms
+	final_ranking = query_with_bigram_keywords(combined_keywords)
+
+	final_ranking = sort_by_boolean_query(final_ranking, phrases)
 	return map(lambda x: x.doc_id, final_ranking)
 
 
@@ -207,32 +265,26 @@ def main():
 	global postings_file
 
 	postings_file = open(postings_path, 'rb')
-	print('posting opened')
 
 	with open(dict_path, 'rb') as f:
 		unigram_dict, bigram_dict = load_dicts(f)
-	print('dict loaded')
 
 	with open(LENGTHS_PATH, 'rb') as f:
 		unigram_lengths = utility.load_object(f)
 		bigram_lengths = utility.load_object(f)
-	print('lengths loaded')
 
 	result = []
 	with open(query_path, 'r') as f:
 		for line in f:
 			line = line.strip()
-			print('###QUERY###', line)
 			if line != '':
 				result = handle_boolean_query(line)
-				print('final result', list(result)[:100], '\n')
 
-	# output = ' '.join(list(map(lambda x: str(x.doc_id), result)))
-	# with open(output_path, 'w') as f:
-	# 	f.write(output)
+	output = ' '.join(list(map(lambda x: str(x), result)))
+	with open(output_path, 'w') as f:
+		f.write(output)
 
 	postings_file.close()
-	print('completed')
 
 
 def usage():
