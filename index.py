@@ -174,52 +174,52 @@ def main():
 		with multiprocessing.Pool(PROCESS_COUNT) as pool:
 			pool.starmap(process_block, zip(filepath_blocks, range(block_count)))
 
-		# Block merging step
-		logging.info('Merging blocks')
-		size = 0
-		for ngram_key in NGRAM_KEYS:
-			logging.info('Merging %s block indexes', ngram_key)
-			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
-				# Open all blocks concurrently in block number order
-				filenames.sort(key=get_int_filename)
-				block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
-				term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
-				# Merge blocks with lazy loading
-				sorted_tuples = heapq.merge(*term_postings_list_tuples)
+	# Block merging step
+	logging.info('Merging blocks')
+	size = 0
+	for ngram_key in NGRAM_KEYS:
+		logging.info('Merging %s block indexes', ngram_key)
+		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('index', ngram_key,)))):
+			# Open all blocks concurrently in block number order
+			filenames.sort(key=get_int_filename)
+			block_file_handles = [open(os.path.join(dirpath, filename), 'rb') for filename in filenames if filename.endswith(BLOCK_EXT)]
+			term_postings_list_tuples = [utility.objects_in(block_file_handle) for block_file_handle in block_file_handles]
+			# Merge blocks with lazy loading
+			sorted_tuples = heapq.merge(*term_postings_list_tuples)
 
-				logging.debug('Processing %s merge heap', ngram_key)
-				# Buffer first term, postings pair in memory
-				target_term, target_postings_list = next(sorted_tuples)
-				for term, postings_list in sorted_tuples:
-					# Save current pair to file if next term in lexicographical order is different
-					# Also buffer next pair for future comparison cycles
-					if target_term != term:
-						utility.save_object((target_term, size), dict_file)
-						size = utility.save_object(target_postings_list, postings_file)
-						target_term = term
-						target_postings_list = postings_list
-					else:
-					# Merge duplicate pairs from heap, in memory buffer
-						target_postings_list.extend(postings_list)
-				# Save last pair buffered in memory as no subsequent pairs exist 
-				utility.save_object((target_term, size), dict_file)
-				size = utility.save_object(target_postings_list, postings_file)
-				# Save a marker in dictionary between models
-				utility.save_object((None, None), dict_file)
+			logging.debug('Processing %s merge heap', ngram_key)
+			# Buffer first term, postings pair in memory
+			target_term, target_postings_list = next(sorted_tuples)
+			for term, postings_list in sorted_tuples:
+				# Save current pair to file if next term in lexicographical order is different
+				# Also buffer next pair for future comparison cycles
+				if target_term != term:
+					utility.save_object((target_term, size), dict_file)
+					size = utility.save_object(target_postings_list, postings_file)
+					target_term = term
+					target_postings_list = postings_list
+				else:
+				# Merge duplicate pairs from heap, in memory buffer
+					target_postings_list.extend(postings_list)
+			# Save last pair buffered in memory as no subsequent pairs exist 
+			utility.save_object((target_term, size), dict_file)
+			size = utility.save_object(target_postings_list, postings_file)
+			# Save a marker in dictionary between models
+			utility.save_object((None, None), dict_file)
 
-				# Cleanup index file handles
-				for block_file_handle in block_file_handles:
-					block_file_handle.close()
+			# Cleanup index file handles
+			for block_file_handle in block_file_handles:
+				block_file_handle.close()
 
-			logging.info('Merging %s block lengths', ngram_key)
-			lengths = {}
-			for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
-				filenames.sort(key=get_int_filename)
-				for filename in filenames:
-					if filename.endswith(BLOCK_EXT):
-						with open(os.path.join(dirpath, filename), 'rb') as f:
-							lengths.update(utility.load_object(f))
-				utility.save_object(lengths, lengths_file)
+		logging.info('Merging %s block lengths', ngram_key)
+		lengths = {}
+		for dirpath, dirnames, filenames in os.walk(get_block_folder_path('_'.join(('lengths', ngram_key,)))):
+			filenames.sort(key=get_int_filename)
+			for filename in filenames:
+				if filename.endswith(BLOCK_EXT):
+					with open(os.path.join(dirpath, filename), 'rb') as f:
+						lengths.update(utility.load_object(f))
+			utility.save_object(lengths, lengths_file)
 
 	logging.info('Cleaning up blocks')
 	# Cleanup block files
