@@ -1,0 +1,190 @@
+
+Intellex-sm
+JSON dictionary: 2,453,787 
+Pickle dictionary: 1,150,810
+
+JSON lengths: 573
+Pickle lengths: 148
+
+JSON postings: 681,336
+Pickle postings: 215,633
+
+
+
+JSON Intellex-sg LEMMATIZER, doc_id, All grams dictionary: 1,092,732,698
+lengths: 565,030
+postings: 1,009,253,326  <—— POSTINGS IS SMALLER THAN DICTIONARY USING LEMMATIZER
+
+
+====
+
+Pickle Intellex-sg LEMMATIZER doc_id, unigram (red)
+Dictionary: 13,173,672 bytes
+Lengths: 161,338 bytes
+Postings: 97,486,999 bytes
+
+====
+
+Pickle Intellex-sg LEMMATIZER gaps, unigram
+Dictionary: 13,173,672 bytes
+Lengths: 161,338 bytes
+Postings: 95,687,890 bytes
+
+Tokenization took:  581.4019141197205  seconds
+Punctuation removal took:  11.000093936920166  seconds
+Stopword removal took:  5.3871190547943115  seconds
+Lemmatization took:  278.6085810661316  seconds
+Preprocess  6241  documents took  880.4164581298828  seconds
+
+[Unigram]
+Indexing  6241  documents took  41.49276399612427  seconds
+Overall:  6241  documents took  921.9095389842987  seconds
+
+====
+
+Pickle Intellex-sg STEMMER gaps, unigram 
+Dictionary: 12,185,359 bytes
+Lengths: 161,338 bytes
+Postings: 85,191,039 bytes
+
+Tokenization took:  584.1360809803009  seconds
+Punctuation removal took:  13.40669298171997  seconds
+Stopword removal took:  5.759312152862549  seconds
+Stemming took:  372.9930901527405  seconds
+Preprocess  6241  documents took  981.098179101944  seconds
+
+[Unigram]
+Indexing  6241  documents took  34.69875502586365  seconds
+Overall:  6241  documents took  1015.7970371246338  seconds
+
+==== 
+
+JSON Intellex-sg STEMMER gaps, unigram
+Dictionary: 12,216,464 bytes
+Lengths: 188,716 bytes
+Postings: 96,175,830 bytes
+
+Tokenization took:  403.98249411582947  seconds
+Punctuation removal took:  5.044873952865601  seconds
+Stopword removal took:  3.5916178226470947  seconds
+Stemming took:  252.93733191490173  seconds
+Preprocess  6241  documents took  669.1399450302124  seconds
+
+[Unigram]
+Indexing  6241  documents took  38.63717293739319  seconds
+Overall:  6241  documents took  707.777184009552  seconds
+
+
+====
+
+JSON Intellex-sg STEMMER doc_id, unigram
+Dictionary: 12,216,464 bytes
+Lengths: 188,670 bytes
+Postings: 101,707,068 bytes
+
+Tokenization took:  421.77582812309265  seconds
+Punctuation removal took:  5.153313159942627  seconds
+Stopword removal took:  3.7590839862823486  seconds
+Stemming took:  249.0336558818817  seconds
+Preprocess  6241  documents took  688.9900350570679  seconds
+
+[Unigram]
+Indexing  6241  documents took  32.441508054733276  seconds
+Overall:  6241  documents took  721.4316110610962  seconds
+
+====
+
+SPIMI [Block pickling] Blocksize=20 docs=1177 unigram
+5m 49s
+22.1MB total index
+
+SPIMI [Posting dict pickling] Blocksize=20 docs=1177 unigram
+6m 20s
+44.3MB total index
+
+SPIMI [Posting tuple pickling] Blocksize=20 docs=1177 unigram
+6m 13s
+32.7MB
+
+
+SPIMI-MP x 4 Blocksize=200 docs=1177 allgrams
+* Seek-table-less, dict tuple, posting tuple
+* STRING doc_ids
+- Mem 1.76GB
+- 2m 20s
+- Dict 185.9MB
+- Post 205.9MB
+- Len 89KB
+
+SPIMI-MP x 4 Blocksize=200 docs=1177 allgrams
+* Seek-table-less, dict tuple, posting tuple
+* INT doc_ids
+- Mem 1.76GB
+- 2m 09s
+- Dict 185.9MB
+- Post 124.7MB
+- Len 89KB
+
+MP x 4 Blocksize=200 docs=1177 allgrams
+* Dict-dict, posting tuple
+* INT doc_ids
+- Mem 3.3GB
+- 2m 10s
+- Dict 206MB
+- Post 150.3MB
+- Len 89KB
+
+SPIMI-MP x 4 Blocksize=200 docs=1177 unigram bigram
+* Seek-table-less, dict tuple, posting tuple
+* INT doc_ids
+- 1m 33s
+- Dict 54.3MB
+- Post 58.7MB
+- Len 33KB
+
+SPIMI-MP x 4 Blocksize=200 docs=1177 unigram bigram
+* Seek-table-less, dict tuple, posting tuple, gap offsets
+* INT doc_ids
+- 1m 15s
+- Dict 49.2MB
+- Post 58.7MB
+- Len 33KB
+
+SPIMI-MP x 4 Blocksize=200 docs=1177 unigram bigram
+* Seek-table-less, dict tuple, posting tuple, gap offsets, gap docids
+* INT doc_ids
+- 1m 15s
+- Dict 49.2MB
+- Post 55.9MB
+- Len 33KB
+
+== Conclusion: No gap_docid encoding due to measly 5% improvement on posting size
+
+SPIMI-MP x 4 Blocksize=200 docs=1177 unigram bigram
+* Seek-table-less, dict tuple, posting tuple, gap offsets, no docfreq
+* INT doc_ids
+- 1m 16s
+- Dict 45.8MB
+- Post 58.7MB
+- Len 33KB
+
+
+4 Core 8 Threads HDD (SG): 5m 12s
+2 Core 4 Threads SSD (SG): 7m 41s
+2 Core 4 Threads SSD (SG) posidx: 5m 14s
+
+SPIMI-MP x 4 Blocksize=200, docs=1177, positional index
+* Seek-table-less, dict tuple, posting tuple, gap offsets, no docfreq
+* INT doc_ids
+- 54s
+- Dict 1.9MB
+- Post 34MB
+- Len 16KB
+
+SPIMI-MP x 4 Blocksize=200, docs=1177, unigram bigram, snowball
+* Seek-table-less, dict tuple, posting tuple, gap offsets, no docfreq
+* INT doc_ids
+- 1m 38s
+- Dict 44.3MB
+- Post 58MB
+- Len 33KB
